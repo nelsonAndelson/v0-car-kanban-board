@@ -2,26 +2,92 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  color: var(--foreground);
-  background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+}
+
+@layer base {
+  :root {
+    --radius: 0.65rem;
+    --background: #ffffff; /* Pure white background */
+    --foreground: #000000; /* Pure black text */
+    --card: #ffffff; /* Pure white cards */
+    --card-foreground: #000000; /* Pure black text on cards */
+    --popover: #ffffff; /* Pure white popovers */
+    --popover-foreground: #000000; /* Pure black text on popovers */
+    --primary: #2563eb; /* Solid blue primary */
+    --primary-foreground: #ffffff; /* White text on primary */
+    --secondary: #f3f4f6; /* Light gray secondary */
+    --secondary-foreground: #000000; /* Black text on secondary */
+    --muted: #f3f4f6; /* Light gray muted */
+    --muted-foreground: #6b7280; /* Gray text */
+    --accent: #f3f4f6; /* Light gray accent */
+    --accent-foreground: #000000; /* Black text on accent */
+    --destructive: #dc2626; /* Solid red destructive */
+    --border: #e5e7eb; /* Light gray border */
+    --input: #ffffff; /* White input background */
+    --ring: #2563eb; /* Blue ring */
+    --chart-1: #3b82f6; /* Blue chart */
+    --chart-2: #10b981; /* Green chart */
+    --chart-3: #f59e0b; /* Yellow chart */
+    --chart-4: #ef4444; /* Red chart */
+    --chart-5: #8b5cf6; /* Purple chart */
+    --sidebar: #ffffff; /* White sidebar */
+    --sidebar-foreground: #000000; /* Black sidebar text */
+    --sidebar-primary: #2563eb; /* Blue sidebar primary */
+    --sidebar-primary-foreground: #ffffff; /* White sidebar primary text */
+    --sidebar-accent: #f3f4f6; /* Light gray sidebar accent */
+    --sidebar-accent-foreground: #000000; /* Black sidebar accent text */
+    --sidebar-border: #e5e7eb; /* Light gray sidebar border */
+    --sidebar-ring: #2563eb; /* Blue sidebar ring */
+  }
+
+  .dark {
+    --background: #000000; /* Pure black background */
+    --foreground: #ffffff; /* Pure white text */
+    --card: #1f2937; /* Dark gray cards */
+    --card-foreground: #ffffff; /* White text on cards */
+    --popover: #1f2937; /* Dark gray popovers */
+    --popover-foreground: #ffffff; /* White text on popovers */
+    --primary: #3b82f6; /* Blue primary */
+    --primary-foreground: #ffffff; /* White text on primary */
+    --secondary: #374151; /* Dark gray secondary */
+    --secondary-foreground: #ffffff; /* White text on secondary */
+    --muted: #374151; /* Dark gray muted */
+    --muted-foreground: #9ca3af; /* Light gray text */
+    --accent: #374151; /* Dark gray accent */
+    --accent-foreground: #ffffff; /* White text on accent */
+    --destructive: #ef4444; /* Red destructive */
+    --border: #374151; /* Dark gray border */
+    --input: #1f2937; /* Dark gray input background */
+    --ring: #3b82f6; /* Blue ring */
+    --chart-1: #3b82f6; /* Blue chart */
+    --chart-2: #10b981; /* Green chart */
+    --chart-3: #f59e0b; /* Yellow chart */
+    --chart-4: #ef4444; /* Red chart */
+    --chart-5: #8b5cf6; /* Purple chart */
+    --sidebar: #1f2937; /* Dark gray sidebar */
+    --sidebar-foreground: #ffffff; /* White sidebar text */
+    --sidebar-primary: #3b82f6; /* Blue sidebar primary */
+    --sidebar-primary-foreground: #ffffff; /* White sidebar primary text */
+    --sidebar-accent: #374151; /* Dark gray sidebar accent */
+    --sidebar-accent-foreground: #ffffff; /* White sidebar accent text */
+    --sidebar-border: #374151; /* Dark gray sidebar border */
+    --sidebar-ring: #3b82f6; /* Blue sidebar ring */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
