@@ -1,8 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -55,7 +53,7 @@ export default function KanbanBoard() {
   );
 
   // Fetch cars with tasks from Supabase
-  const fetchCarsWithTasks = async () => {
+  const fetchCarsWithTasks = useCallback(async () => {
     try {
       // First, fetch cars
       const { data: carsData, error: carsError } = await supabase
@@ -114,7 +112,7 @@ export default function KanbanBoard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isCarDetailsModalOpen, selectedCar]);
 
   // Set up real-time subscriptions
   useEffect(() => {
@@ -156,7 +154,7 @@ export default function KanbanBoard() {
       carsSubscription.unsubscribe();
       tasksSubscription.unsubscribe();
     };
-  }, [isCarDetailsModalOpen, selectedCar?.id]); // Re-run effect if modal state or selected car changes
+  }, [fetchCarsWithTasks, isCarDetailsModalOpen, selectedCar?.id]); // Re-run effect if modal state or selected car changes
 
   // Handle drag start
   const handleDragStart = (event: DragStartEvent) => {
