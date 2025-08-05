@@ -20,18 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import {
-  DollarSign,
-  CreditCard,
-  CheckCircle2,
-  AlertTriangle,
-} from "lucide-react";
-import {
-  supabase,
-  type RepairJob,
-  type Payment,
-  type PaymentMethod,
-} from "@/lib/supabase";
+import { DollarSign, CheckCircle2 } from "lucide-react";
+import { supabase, type RepairJob, type PaymentMethod } from "@/lib/supabase";
 
 interface PaymentModalProps {
   job: RepairJob;
@@ -62,19 +52,16 @@ export default function PaymentModal({
     setIsSubmitting(true);
 
     try {
-      const { data: payment, error } = await supabase
-        .from("payments")
-        .insert([
-          {
-            repair_job_id: job.id,
-            amount: paymentData.amount,
-            payment_method: paymentData.payment_method,
-            transaction_id: paymentData.transaction_id || null,
-            notes: paymentData.notes || null,
-            status: "completed",
-          },
-        ])
-        .select();
+      const { error } = await supabase.from("payments").insert([
+        {
+          repair_job_id: job.id,
+          amount: paymentData.amount,
+          payment_method: paymentData.payment_method,
+          transaction_id: paymentData.transaction_id || null,
+          notes: paymentData.notes || null,
+          status: "completed",
+        },
+      ]);
 
       if (error) throw error;
 

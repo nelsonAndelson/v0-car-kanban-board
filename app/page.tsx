@@ -12,11 +12,8 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { supabase, type CarWithTasks } from "@/lib/supabase";
+
+import { supabase, Task, type CarWithTasks } from "@/lib/supabase";
 import { KanbanColumn } from "@/components/kanban-column";
 import { AddCarForm } from "@/components/add-car-form";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +21,6 @@ import { Car, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { FloatingAddButton } from "@/components/floating-add-button";
 import { QuickStatsBar } from "@/components/quick-stats-bar";
 import { SetupNotice } from "@/components/setup-notice";
-import { DatabaseTest } from "@/components/database-test";
 import { CarDetailsModal } from "@/components/car-details-modal";
 
 const COLUMNS = [
@@ -45,7 +41,6 @@ const COLUMNS = [
 export default function KanbanBoard() {
   const [cars, setCars] = useState<CarWithTasks[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showDebug, setShowDebug] = useState(false);
   const [selectedCar, setSelectedCar] = useState<CarWithTasks | null>(null);
   const [isCarDetailsModalOpen, setIsCarDetailsModalOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -71,7 +66,7 @@ export default function KanbanBoard() {
       if (carsError) throw carsError;
 
       // Try to fetch tasks, but handle gracefully if table doesn't exist
-      let tasksData: any[] = [];
+      let tasksData: Task[] = [];
       try {
         const { data, error: tasksError } = await supabase
           .from("tasks")
@@ -273,19 +268,9 @@ export default function KanbanBoard() {
           <p className="text-muted-foreground">
             Track your inventory from acquisition to sale
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowDebug(!showDebug)}
-            className="mt-2"
-          >
-            {showDebug ? "Hide" : "Show"} Debug Tools
-          </Button>
         </div>
 
         <SetupNotice />
-
-        {showDebug && <DatabaseTest />}
 
         {/* Statistics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">

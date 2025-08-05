@@ -1,22 +1,40 @@
 export interface AppError {
-  message: string
-  code?: string
-  isTableMissing?: boolean
-  details?: any
+  message: string;
+  code?: string;
+  isTableMissing?: boolean;
+  details?: Record<string, unknown>;
 }
 
-export function handleSupabaseError(error: any): AppError {
+interface SupabaseErrorLike {
+  message?: string;
+  code?: string;
+  details?: unknown;
+  hint?: string;
+  error_description?: string;
+  msg?: string;
+  status?: string | number;
+}
+
+export function handleSupabaseError(error: unknown): AppError {
+  // Cast error for type safety
+  const errorObj = error as SupabaseErrorLike;
+
   // Enhanced logging with more details
-  console.group("🔍 Supabase Error Analysis")
-  console.log("Raw error object:", error)
-  console.log("Error type:", typeof error)
-  console.log("Error constructor:", error?.constructor?.name)
-  console.log("Error message:", error?.message)
-  console.log("Error code:", error?.code)
-  console.log("Error details:", error?.details)
-  console.log("Error hint:", error?.hint)
-  console.log("Full error keys:", error ? Object.keys(error) : "No keys - error is falsy")
-  console.groupEnd()
+  console.group("🔍 Supabase Error Analysis");
+  console.log("Raw error object:", error);
+  console.log("Error type:", typeof error);
+  console.log("Error constructor:", error?.constructor?.name);
+  console.log("Error message:", errorObj?.message);
+  console.log("Error code:", errorObj?.code);
+  console.log("Error details:", errorObj?.details);
+  console.log("Error hint:", errorObj?.hint);
+  console.log(
+    "Full error keys:",
+    error && typeof error === "object"
+      ? Object.keys(error)
+      : "No keys - error is falsy"
+  );
+  console.groupEnd();
 
   // Handle null/undefined errors
   if (!error) {
@@ -24,7 +42,7 @@ export function handleSupabaseError(error: any): AppError {
       message: "An unknown error occurred (error object is null/undefined)",
       code: "NULL_ERROR",
       details: { originalError: error },
-    }
+    };
   }
 
   // Handle string errors
@@ -33,11 +51,15 @@ export function handleSupabaseError(error: any): AppError {
       message: error,
       code: "STRING_ERROR",
       details: { originalError: error },
-    }
+    };
   }
 
   // Handle error objects
-  const errorMessage = error.message || error.error_description || error.msg || "An unexpected error occurred"
+  const errorMessage =
+    errorObj.message ||
+    errorObj.error_description ||
+    errorObj.msg ||
+    "An unexpected error occurred";
 
   // Check for table missing errors with more comprehensive checking
   const isTableMissing =
@@ -45,15 +67,15 @@ export function handleSupabaseError(error: any): AppError {
       (errorMessage.toLowerCase().includes("does not exist") ||
         errorMessage.toLowerCase().includes("relation") ||
         errorMessage.toLowerCase().includes("permission denied"))) ||
-    error.code === "42P01" // PostgreSQL error code for undefined table
+    errorObj.code === "42P01"; // PostgreSQL error code for undefined table
 
   return {
     message: errorMessage,
-    code: error.code || error.status || "UNKNOWN_CODE",
+    code: errorObj.code || String(errorObj.status) || "UNKNOWN_CODE",
     isTableMissing,
     details: {
       originalError: error,
-      errorKeys: Object.keys(error),
+      errorKeys: error && typeof error === "object" ? Object.keys(error) : [],
     },
-  }
+  };
 }

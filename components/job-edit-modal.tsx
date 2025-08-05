@@ -7,7 +7,7 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
+CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,24 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   DollarSign,
   Wrench,
   Plus,
   Trash2,
   Edit3,
-  Save,
   X,
   AlertTriangle,
-  CheckCircle2,
 } from "lucide-react";
-import {
-  supabase,
-  type RepairJob,
-  type Payment,
-  type PaymentMethod,
-} from "@/lib/supabase";
+import { supabase, type RepairJob, type PaymentMethod } from "@/lib/supabase";
 
 interface JobEditModalProps {
   job: RepairJob;
@@ -108,9 +100,8 @@ export default function JobEditModal({
   });
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<
-    "details" | "payments" | "costs" | "modifications"
-  >("details");
+  type TabId = "details" | "payments" | "costs" | "modifications";
+  const [activeTab, setActiveTab] = useState<TabId>("details");
 
   const outstandingBalance = jobData.customer_price - (job.total_paid || 0);
   const totalAdditionalCosts = additionalCosts.reduce(
@@ -346,14 +337,14 @@ export default function JobEditModal({
           {/* Tab Navigation */}
           <div className="flex space-x-1 border-b">
             {[
-              { id: "details", label: "Job Details", icon: Wrench },
-              { id: "payments", label: "Payments", icon: DollarSign },
-              { id: "costs", label: "Additional Costs", icon: Plus },
-              { id: "modifications", label: "Add Work", icon: Edit3 },
+              { id: "details" as const, label: "Job Details", icon: Wrench },
+              { id: "payments" as const, label: "Payments", icon: DollarSign },
+              { id: "costs" as const, label: "Additional Costs", icon: Plus },
+              { id: "modifications" as const, label: "Add Work", icon: Edit3 },
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as TabId)}
                 className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === tab.id
                     ? "border-primary text-primary"

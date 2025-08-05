@@ -1,12 +1,21 @@
-"use client"
+"use client";
 
-import type { CarWithTasks } from "@/lib/supabase"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { X, Car, Calendar, Palette, Tag, Info, Clock, Trash2 } from "lucide-react"
-import { TaskItem } from "./task-item"
-import { AddTaskForm } from "./add-task-form"
-import { Badge } from "@/components/ui/badge"
+import type { CarWithTasks } from "@/lib/supabase";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  X,
+  Car,
+  Calendar,
+  Palette,
+  Tag,
+  Info,
+  Clock,
+  Trash2,
+} from "lucide-react";
+import { TaskItem } from "./task-item";
+import { AddTaskForm } from "./add-task-form";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,62 +26,75 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { supabase } from "@/lib/supabase"
-import { handleSupabaseError } from "@/lib/error-handler"
-import { useState } from "react"
+} from "@/components/ui/alert-dialog";
+import { supabase } from "@/lib/supabase";
+import { handleSupabaseError } from "@/lib/error-handler";
+import { useState } from "react";
 
 interface CarDetailsModalProps {
-  car: CarWithTasks
-  onClose: () => void
-  onUpdate: () => void // To trigger re-fetch after task changes
+  car: CarWithTasks;
+  onClose: () => void;
+  onUpdate: () => void; // To trigger re-fetch after task changes
 }
 
-export function CarDetailsModal({ car, onClose, onUpdate }: CarDetailsModalProps) {
-  const [isDeleting, setIsDeleting] = useState(false)
-  const completedTasks = car.tasks?.filter((task) => task.is_completed) || []
-  const pendingTasks = car.tasks?.filter((task) => !task.is_completed) || []
-  const highPriorityTasks = pendingTasks.filter((task) => task.priority === "high")
+export function CarDetailsModal({
+  car,
+  onClose,
+  onUpdate,
+}: CarDetailsModalProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const completedTasks = car.tasks?.filter((task) => task.is_completed) || [];
+  const pendingTasks = car.tasks?.filter((task) => !task.is_completed) || [];
 
   const handleDeleteCar = async () => {
-    setIsDeleting(true)
+    setIsDeleting(true);
     try {
-      const { error } = await supabase.from("cars").delete().eq("id", car.id)
+      const { error } = await supabase.from("cars").delete().eq("id", car.id);
 
       if (error) {
-        const appError = handleSupabaseError(error)
-        alert(`Failed to delete car: ${appError.message}`)
-        return
+        const appError = handleSupabaseError(error);
+        alert(`Failed to delete car: ${appError.message}`);
+        return;
       }
 
       // Close the modal and trigger a full data refresh
-      onClose() // This will also call onUpdate from app/page.tsx
+      onClose(); // This will also call onUpdate from app/page.tsx
     } catch (error) {
-      console.error("Unexpected error deleting car:", error)
-      const appError = handleSupabaseError(error)
-      alert(`Failed to delete car: ${appError.message}`)
+      console.error("Unexpected error deleting car:", error);
+      const appError = handleSupabaseError(error);
+      alert(`Failed to delete car: ${appError.message}`);
     } finally {
-      setIsDeleting(false)
+      setIsDeleting(false);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-              <Card className="relative w-full max-w-3xl max-h-[90vh] flex flex-col border-2 border-primary/20 shadow-2xl bg-card">
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <Card className="relative w-full max-w-3xl max-h-[90vh] flex flex-col border-2 border-primary/20 shadow-2xl bg-card">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-2xl">
               <Car className="w-6 h-6" />
               {car.year} {car.make} {car.model}
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+            >
               <X className="h-5 w-5" />
             </Button>
           </div>
           <div className="text-sm text-muted-foreground flex items-center gap-2">
             <Badge variant="secondary">{car.status}</Badge>
-            <span className="text-xs">Last updated: {new Date(car.updated_at).toLocaleString()}</span>
+            <span className="text-xs">
+              Last updated: {new Date(car.updated_at).toLocaleString()}
+            </span>
           </div>
         </CardHeader>
 
@@ -99,7 +121,8 @@ export function CarDetailsModal({ car, onClose, onUpdate }: CarDetailsModalProps
 
           <h3 className="font-semibold text-lg flex items-center gap-2">
             <Clock className="w-5 h-5" />
-            Tasks ({pendingTasks.length} Pending, {completedTasks.length} Completed)
+            Tasks ({pendingTasks.length} Pending, {completedTasks.length}{" "}
+            Completed)
           </h3>
           <div className="space-y-3">
             {pendingTasks.length === 0 && completedTasks.length === 0 && (
@@ -110,7 +133,9 @@ export function CarDetailsModal({ car, onClose, onUpdate }: CarDetailsModalProps
 
             {pendingTasks.length > 0 && (
               <div className="space-y-2">
-                <h4 className="font-medium text-sm text-muted-foreground">Pending:</h4>
+                <h4 className="font-medium text-sm text-muted-foreground">
+                  Pending:
+                </h4>
                 {pendingTasks.map((task) => (
                   <TaskItem key={task.id} task={task} onTaskUpdate={onUpdate} />
                 ))}
@@ -120,11 +145,16 @@ export function CarDetailsModal({ car, onClose, onUpdate }: CarDetailsModalProps
             {completedTasks.length > 0 && (
               <details className="group">
                 <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground font-medium">
-                  {completedTasks.length} Completed Task{completedTasks.length !== 1 ? "s" : ""}
+                  {completedTasks.length} Completed Task
+                  {completedTasks.length !== 1 ? "s" : ""}
                 </summary>
                 <div className="mt-2 space-y-2">
                   {completedTasks.map((task) => (
-                    <TaskItem key={task.id} task={task} onTaskUpdate={onUpdate} />
+                    <TaskItem
+                      key={task.id}
+                      task={task}
+                      onTaskUpdate={onUpdate}
+                    />
                   ))}
                 </div>
               </details>
@@ -156,7 +186,10 @@ export function CarDetailsModal({ car, onClose, onUpdate }: CarDetailsModalProps
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteCar} disabled={isDeleting}>
+                <AlertDialogAction
+                  onClick={handleDeleteCar}
+                  disabled={isDeleting}
+                >
                   {isDeleting ? "Deleting..." : "Delete"}
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -165,5 +198,5 @@ export function CarDetailsModal({ car, onClose, onUpdate }: CarDetailsModalProps
         </div>
       </Card>
     </div>
-  )
+  );
 }

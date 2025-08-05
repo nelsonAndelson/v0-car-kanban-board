@@ -37,7 +37,6 @@ import {
   type RepairJob,
   type JobType,
   type JobStatus,
-  type Payment,
 } from "@/lib/supabase";
 import PaymentModal from "@/components/payment-modal";
 import JobEditModal from "@/components/job-edit-modal";
@@ -46,7 +45,6 @@ export default function RepairBayTracker() {
   const [jobs, setJobs] = useState<RepairJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showNewJobForm, setShowNewJobForm] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<RepairJob | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedJobForPayment, setSelectedJobForPayment] =
     useState<RepairJob | null>(null);
@@ -513,7 +511,7 @@ export default function RepairBayTracker() {
 
   const updateJobStatus = async (jobId: string, status: JobStatus) => {
     try {
-      const updateData: any = {
+      const updateData: Partial<RepairJob> = {
         status,
         updated_at: new Date().toISOString(),
       };
@@ -745,7 +743,8 @@ export default function RepairBayTracker() {
           Repair Bay Activity Tracker
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground px-4">
-          Track every car that goes into a bay - "If it goes up, it gets logged"
+          Track every car that goes into a bay - &quot;If it goes up, it gets
+          logged&quot;
         </p>
       </div>
 
@@ -1614,7 +1613,7 @@ export default function RepairBayTracker() {
                       Price: ${job.customer_price || 0}
                     </Badge>
                     {(() => {
-                      const { profit, isProfit, isLoss, isBreakEven } =
+                      const { profit, isProfit, isLoss } =
                         calculateProfitLoss(job);
                       return (
                         <Badge

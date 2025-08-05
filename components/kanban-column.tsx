@@ -1,5 +1,4 @@
 import type { CarWithTasks } from "@/lib/supabase";
-import { CarCard } from "./car-card";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -31,7 +30,7 @@ export function KanbanColumn({
   return (
     <div
       ref={setNodeRef}
-              className={`min-h-[500px] p-3 transition-all duration-200 rounded-lg bg-muted/50 border ${
+      className={`min-h-[500px] p-3 transition-all duration-200 rounded-lg bg-muted/50 border ${
         isOver ? "bg-blue-50/80 border-blue-200 shadow-md" : "border-gray-200"
       }`}
     >

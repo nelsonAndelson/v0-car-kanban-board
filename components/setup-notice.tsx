@@ -1,47 +1,55 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Database, AlertTriangle, CheckCircle2, Copy } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Database, AlertTriangle, CheckCircle2, Copy } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export function SetupNotice() {
-  const [isVisible, setIsVisible] = useState(false)
-  const [tablesExist, setTablesExist] = useState({ cars: false, tasks: false })
-  const [isChecking, setIsChecking] = useState(true)
+  const [isVisible, setIsVisible] = useState(false);
+  const [tablesExist, setTablesExist] = useState({ cars: false, tasks: false });
+  const [isChecking, setIsChecking] = useState(true);
 
   const checkTables = async () => {
-    setIsChecking(true)
+    setIsChecking(true);
     try {
       // Check if cars table exists
-      const { error: carsError } = await supabase.from("cars").select("id").limit(1)
-      const carsExist = !carsError || !carsError.message.includes("does not exist")
+      const { error: carsError } = await supabase
+        .from("cars")
+        .select("id")
+        .limit(1);
+      const carsExist =
+        !carsError || !carsError.message.includes("does not exist");
 
       // Check if tasks table exists
-      const { error: tasksError } = await supabase.from("tasks").select("id").limit(1)
-      const tasksExist = !tasksError || !tasksError.message.includes("does not exist")
+      const { error: tasksError } = await supabase
+        .from("tasks")
+        .select("id")
+        .limit(1);
+      const tasksExist =
+        !tasksError || !tasksError.message.includes("does not exist");
 
-      setTablesExist({ cars: carsExist, tasks: tasksExist })
+      setTablesExist({ cars: carsExist, tasks: tasksExist });
 
       // Show notice if either table is missing
-      setIsVisible(!carsExist || !tasksExist)
+      setIsVisible(!carsExist || !tasksExist);
     } catch (error) {
-      console.error("Error checking tables:", error)
-      setIsVisible(true)
+      console.error("Error checking tables:", error);
+      setIsVisible(true);
     } finally {
-      setIsChecking(false)
+      setIsChecking(false);
     }
-  }
+  };
 
   useEffect(() => {
-    checkTables()
-  }, [])
+    checkTables();
+  }, []);
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-  }
+    navigator.clipboard.writeText(text);
+  };
 
   const sqlScript = `-- Enable UUID extension if not already enabled
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -93,7 +101,7 @@ DROP POLICY IF EXISTS "Allow all operations on tasks" ON tasks;
 
 -- Create policies to allow all operations (since no auth required)
 CREATE POLICY "Allow all operations on cars" ON cars FOR ALL USING (true);
-CREATE POLICY "Allow all operations on tasks" ON tasks FOR ALL USING (true);`
+CREATE POLICY "Allow all operations on tasks" ON tasks FOR ALL USING (true);`;
 
   if (isChecking) {
     return (
@@ -101,11 +109,11 @@ CREATE POLICY "Allow all operations on tasks" ON tasks FOR ALL USING (true);`
         <Database className="h-4 w-4" />
         <AlertDescription>Checking database setup...</AlertDescription>
       </Alert>
-    )
+    );
   }
 
   if (!isVisible) {
-    return null
+    return null;
   }
 
   return (
@@ -124,7 +132,11 @@ CREATE POLICY "Allow all operations on tasks" ON tasks FOR ALL USING (true);`
             ) : (
               <AlertTriangle className="w-4 h-4 text-orange-500" />
             )}
-            <span className={tablesExist.cars ? "text-green-700" : "text-orange-700"}>
+            <span
+              className={
+                tablesExist.cars ? "text-green-700" : "text-orange-700"
+              }
+            >
               Cars table {tablesExist.cars ? "exists" : "missing"}
             </span>
           </div>
@@ -134,7 +146,11 @@ CREATE POLICY "Allow all operations on tasks" ON tasks FOR ALL USING (true);`
             ) : (
               <AlertTriangle className="w-4 h-4 text-orange-500" />
             )}
-            <span className={tablesExist.tasks ? "text-green-700" : "text-orange-700"}>
+            <span
+              className={
+                tablesExist.tasks ? "text-green-700" : "text-orange-700"
+              }
+            >
               Tasks table {tablesExist.tasks ? "exists" : "missing"}
             </span>
           </div>
@@ -147,7 +163,7 @@ CREATE POLICY "Allow all operations on tasks" ON tasks FOR ALL USING (true);`
               <li>Go to your Supabase project dashboard</li>
               <li>Navigate to the SQL Editor</li>
               <li>Copy and paste the SQL script below</li>
-              <li>Click "Run" to create the required tables</li>
+              <li>Click &quot;Run&quot; to create the required tables</li>
               <li>Refresh this page</li>
             </ol>
           </AlertDescription>
@@ -177,5 +193,5 @@ CREATE POLICY "Allow all operations on tasks" ON tasks FOR ALL USING (true);`
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
