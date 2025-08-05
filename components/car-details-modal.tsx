@@ -59,7 +59,7 @@ export function CarDetailsModal({ car, onClose, onUpdate }: CarDetailsModalProps
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <Card className="relative w-full max-w-3xl max-h-[90vh] flex flex-col border-2 border-primary/20 shadow-2xl bg-white">
+              <Card className="relative w-full max-w-3xl max-h-[90vh] flex flex-col border-2 border-primary/20 shadow-2xl bg-card">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-2xl">
