@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabase";
+import { supabase, Task } from "@/lib/supabase";
 import { priorityIcons, priorityColors } from "@/lib/taskUtils"; // Corrected import
 import { handleSupabaseError } from "@/lib/error-handler"; // Corrected import
 import { Trash2 } from "lucide-react";
 
 interface TaskItemProps {
-  task: any; // Using any for now, should be Task type from lib/supabase
+  task: Task;
   onTaskUpdate: () => void;
 }
 
