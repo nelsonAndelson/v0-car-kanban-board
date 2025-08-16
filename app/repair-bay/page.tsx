@@ -39,6 +39,8 @@ import {
   type RepairJob,
   type JobType,
   type JobStatus,
+  type AdditionalCost,
+  type JobModification,
 } from "@/lib/supabase";
 import PaymentModal from "@/components/payment-modal";
 import JobEditModal from "@/components/job-edit-modal";
@@ -434,7 +436,10 @@ export default function RepairBayTracker() {
 
           const addMap: Record<string, number> = {};
           if (!addCostsResp.error) {
-            (addCostsResp.data || []).forEach((row: any) => {
+            const addRows = (addCostsResp.data ?? []) as Array<
+              Pick<AdditionalCost, "repair_job_id" | "amount">
+            >;
+            addRows.forEach((row) => {
               addMap[row.repair_job_id] =
                 (addMap[row.repair_job_id] || 0) + (Number(row.amount) || 0);
             });
@@ -442,7 +447,10 @@ export default function RepairBayTracker() {
 
           const modMap: Record<string, number> = {};
           if (!modsResp.error) {
-            (modsResp.data || []).forEach((row: any) => {
+            const modRows = (modsResp.data ?? []) as Array<
+              Pick<JobModification, "repair_job_id" | "estimated_cost">
+            >;
+            modRows.forEach((row) => {
               modMap[row.repair_job_id] =
                 (modMap[row.repair_job_id] || 0) +
                 (Number(row.estimated_cost) || 0);
@@ -608,7 +616,9 @@ export default function RepairBayTracker() {
 
     // If we built items, persist them
     if (hasItems) {
-      const rows = quoteItems.map((it) => ({
+      const rows: Array<
+        Omit<JobModification, "id" | "created_at" | "updated_at">
+      > = quoteItems.map((it) => ({
         repair_job_id: created.id,
         description: it.description,
         estimated_cost: Number(it.estimated_cost || 0),
@@ -622,7 +632,7 @@ export default function RepairBayTracker() {
           estimated_cost: 0,
           customer_price: manualLaborAmount,
           quantity: 1,
-        } as any);
+        });
       }
       const { error: modsErr } = await supabase
         .from("job_modifications")
@@ -952,7 +962,7 @@ export default function RepairBayTracker() {
     (job) =>
       job.actual_completion && new Date(job.actual_completion) >= startOfDay
   ).length;
-  const bayUtilizationRate = jobsStartedToday; // Assuming 1 bay, can be scaled by number of bays
+  // const bayUtilizationRate = jobsStartedToday; // Assuming 1 bay, can be scaled by number of bays
 
   // 5. Outstanding Receivables (Total unpaid amounts)
   const totalOutstandingReceivables = customerJobsOnly.reduce(

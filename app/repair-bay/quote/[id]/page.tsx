@@ -35,13 +35,13 @@ export default function CustomerQuotePage() {
         supabase.from("repair_jobs").select("*").eq("id", jobId).maybeSingle(),
         supabase
           .from("job_modifications")
-          .select("id, description, estimated_cost, customer_price")
+          .select("id, description, estimated_cost, customer_price, quantity")
           .eq("repair_job_id", jobId),
       ]);
       if (jobErr) throw jobErr;
       if (modsErr) throw modsErr;
-      setJob(jobData as any);
-      setMods((modsData as any) || []);
+      setJob((jobData as RepairJob) ?? null);
+      setMods((modsData as ModRow[]) || []);
     } catch (err) {
       console.error("Failed to load quote", err);
     } finally {
