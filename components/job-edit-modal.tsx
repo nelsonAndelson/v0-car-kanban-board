@@ -7,7 +7,7 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-CardTitle,
+  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,6 +73,12 @@ export default function JobEditModal({
     notes: job.notes || "",
   });
 
+  // Customer info editing (for customer jobs)
+  const [customerData, setCustomerData] = useState({
+    name: job.customer_info?.name || "",
+    contact: job.customer_info?.contact || "",
+  });
+
   // Payment state
   const [paymentData, setPaymentData] = useState({
     amount: 0,
@@ -130,6 +136,10 @@ export default function JobEditModal({
         job_description: job.job_description,
         notes: job.notes || "",
       });
+      setCustomerData({
+        name: job.customer_info?.name || "",
+        contact: job.customer_info?.contact || "",
+      });
     }
   }, [job, isOpen]);
 
@@ -176,6 +186,10 @@ export default function JobEditModal({
           estimated_cost: updatedEstimatedCost,
           job_description: jobData.job_description,
           notes: jobData.notes,
+          customer_info:
+            job.job_type === "customer"
+              ? { name: customerData.name, contact: customerData.contact }
+              : job.customer_info,
           updated_at: new Date().toISOString(),
         })
         .eq("id", job.id);
@@ -360,6 +374,36 @@ export default function JobEditModal({
           {/* Job Details Tab */}
           {activeTab === "details" && (
             <div className="space-y-4">
+              {job.job_type === "customer" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Customer Name</Label>
+                    <Input
+                      value={customerData.name}
+                      onChange={(e) =>
+                        setCustomerData((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      placeholder="Customer name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Customer Contact</Label>
+                    <Input
+                      value={customerData.contact}
+                      onChange={(e) =>
+                        setCustomerData((prev) => ({
+                          ...prev,
+                          contact: e.target.value,
+                        }))
+                      }
+                      placeholder="Phone, email, etc."
+                    />
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Customer Price</Label>
@@ -435,6 +479,10 @@ export default function JobEditModal({
                   </div>
                   <div className="font-medium">
                     Total Cost: ${updatedEstimatedCost.toFixed(2)}
+                  </div>
+                  <div className="col-span-2 font-semibold">
+                    Profit / Loss: $
+                    {(updatedCustomerPrice - updatedEstimatedCost).toFixed(2)}
                   </div>
                 </div>
               </div>

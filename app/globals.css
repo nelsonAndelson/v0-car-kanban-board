@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -10,30 +14,30 @@
 
 @layer base {
   :root {
-    --radius: 0.5rem;
+    --radius: 0.65rem;
     --background: 0 0% 100%; /* Pure white background */
-    --foreground: 0 0% 3.9%; /* Pure black text */
+    --foreground: 0 0% 0%; /* Pure black text */
     --card: 0 0% 100%; /* Pure white cards */
-    --card-foreground: 0 0% 3.9%; /* Pure black text on cards */
+    --card-foreground: 0 0% 0%; /* Pure black text on cards */
     --popover: 0 0% 100%; /* Pure white popovers */
-    --popover-foreground: 0 0% 3.9%; /* Pure black text on popovers */
-    --primary: 0 0% 9%; /* Solid blue primary */
-    --primary-foreground: 0 0% 98%; /* White text on primary */
-    --secondary: 0 0% 96.1%; /* Light gray secondary */
-    --secondary-foreground: 0 0% 9%; /* Black text on secondary */
-    --muted: 0 0% 96.1%; /* Light gray muted */
-    --muted-foreground: 0 0% 45.1%; /* Gray text */
-    --accent: 0 0% 96.1%; /* Light gray accent */
-    --accent-foreground: 0 0% 9%; /* Black text on accent */
-    --destructive: 0 84.2% 60.2%; /* Solid red destructive */
-    --border: 0 0% 89.8%; /* Light gray border */
-    --input: 0 0% 89.8%; /* White input background */
-    --ring: 0 0% 3.9%; /* Blue ring */
-    --chart-1: 12 76% 61%; /* Blue chart */
-    --chart-2: 173 58% 39%; /* Green chart */
-    --chart-3: 197 37% 24%; /* Yellow chart */
-    --chart-4: 43 74% 66%; /* Red chart */
-    --chart-5: 27 87% 67%; /* Purple chart */
+    --popover-foreground: 0 0% 0%; /* Pure black text on popovers */
+    --primary: 217 91% 60%; /* Solid blue primary */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+    --secondary: 210 40% 96%; /* Light gray secondary */
+    --secondary-foreground: 0 0% 0%; /* Black text on secondary */
+    --muted: 210 40% 96%; /* Light gray muted */
+    --muted-foreground: 215 16% 47%; /* Gray text */
+    --accent: 210 40% 96%; /* Light gray accent */
+    --accent-foreground: 0 0% 0%; /* Black text on accent */
+    --destructive: 0 84% 60%; /* Solid red destructive */
+    --border: 214 32% 91%; /* Light gray border */
+    --input: 0 0% 100%; /* White input background */
+    --ring: 217 91% 60%; /* Blue ring */
+    --chart-1: 217 91% 60%; /* Blue chart */
+    --chart-2: 142 76% 36%; /* Green chart */
+    --chart-3: 38 92% 50%; /* Yellow chart */
+    --chart-4: 0 84% 60%; /* Red chart */
+    --chart-5: 258 90% 66%; /* Purple chart */
     --sidebar: 0 0% 100%; /* White sidebar */
     --sidebar-foreground: 0 0% 0%; /* Black sidebar text */
     --sidebar-primary: 217 91% 60%; /* Blue sidebar primary */
@@ -41,33 +45,33 @@
     --sidebar-accent: 210 40% 96%; /* Light gray sidebar accent */
     --sidebar-accent-foreground: 0 0% 0%; /* Black sidebar accent text */
     --sidebar-border: 214 32% 91%; /* Light gray sidebar border */
-    --sidebar-ring: 217 91% 60%; /* Blue sidebar ring */ --destructive-foreground: 0 0% 98%;
+    --sidebar-ring: 217 91% 60%; /* Blue sidebar ring */
   }
 
   .dark {
-    --background: 0 0% 3.9%; /* Pure black background */
-    --foreground: 0 0% 98%; /* Pure white text */
-    --card: 0 0% 3.9%; /* Dark gray cards */
-    --card-foreground: 0 0% 98%; /* White text on cards */
-    --popover: 0 0% 3.9%; /* Dark gray popovers */
-    --popover-foreground: 0 0% 98%; /* White text on popovers */
-    --primary: 0 0% 98%; /* Blue primary */
-    --primary-foreground: 0 0% 9%; /* White text on primary */
-    --secondary: 0 0% 14.9%; /* Dark gray secondary */
-    --secondary-foreground: 0 0% 98%; /* White text on secondary */
-    --muted: 0 0% 14.9%; /* Dark gray muted */
-    --muted-foreground: 0 0% 63.9%; /* Light gray text */
-    --accent: 0 0% 14.9%; /* Dark gray accent */
-    --accent-foreground: 0 0% 98%; /* White text on accent */
-    --destructive: 0 62.8% 30.6%; /* Red destructive */
-    --border: 0 0% 14.9%; /* Dark gray border */
-    --input: 0 0% 14.9%; /* Dark gray input background */
-    --ring: 0 0% 83.1%; /* Blue ring */
-    --chart-1: 220 70% 50%; /* Blue chart */
-    --chart-2: 160 60% 45%; /* Green chart */
-    --chart-3: 30 80% 55%; /* Yellow chart */
-    --chart-4: 280 65% 60%; /* Red chart */
-    --chart-5: 340 75% 55%; /* Purple chart */
+    --background: 0 0% 0%; /* Pure black background */
+    --foreground: 0 0% 100%; /* Pure white text */
+    --card: 216 34% 17%; /* Dark gray cards */
+    --card-foreground: 0 0% 100%; /* White text on cards */
+    --popover: 216 34% 17%; /* Dark gray popovers */
+    --popover-foreground: 0 0% 100%; /* White text on popovers */
+    --primary: 217 91% 60%; /* Blue primary */
+    --primary-foreground: 0 0% 100%; /* White text on primary */
+    --secondary: 215 28% 17%; /* Dark gray secondary */
+    --secondary-foreground: 0 0% 100%; /* White text on secondary */
+    --muted: 215 28% 17%; /* Dark gray muted */
+    --muted-foreground: 218 11% 65%; /* Light gray text */
+    --accent: 215 28% 17%; /* Dark gray accent */
+    --accent-foreground: 0 0% 100%; /* White text on accent */
+    --destructive: 0 84% 60%; /* Red destructive */
+    --border: 215 28% 17%; /* Dark gray border */
+    --input: 216 34% 17%; /* Dark gray input background */
+    --ring: 217 91% 60%; /* Blue ring */
+    --chart-1: 217 91% 60%; /* Blue chart */
+    --chart-2: 142 76% 36%; /* Green chart */
+    --chart-3: 38 92% 50%; /* Yellow chart */
+    --chart-4: 0 84% 60%; /* Red chart */
+    --chart-5: 258 90% 66%; /* Purple chart */
     --sidebar: 216 34% 17%; /* Dark gray sidebar */
     --sidebar-foreground: 0 0% 100%; /* White sidebar text */
     --sidebar-primary: 217 91% 60%; /* Blue sidebar primary */
@@ -75,7 +79,7 @@
     --sidebar-accent: 215 28% 17%; /* Dark gray sidebar accent */
     --sidebar-accent-foreground: 0 0% 100%; /* White sidebar accent text */
     --sidebar-border: 215 28% 17%; /* Dark gray sidebar border */
-    --sidebar-ring: 217 91% 60%; /* Blue sidebar ring */ --destructive-foreground: 0 0% 98%;
+    --sidebar-ring: 217 91% 60%; /* Blue sidebar ring */
   }
 }
 
@@ -86,4 +90,16 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Remove number input spinners (Chrome, Safari, Edge, Opera) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }

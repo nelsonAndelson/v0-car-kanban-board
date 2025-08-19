@@ -82,6 +82,7 @@ export type JobModification = {
   description: string;
   estimated_cost: number;
   customer_price: number;
+  quantity?: number;
   created_at: string;
   updated_at: string;
 };
@@ -119,6 +120,9 @@ export type RepairJob = {
   payment_status?: JobPaymentStatus;
   total_paid?: number;
   outstanding_balance?: number;
+  // Quote fields
+  tax_rate?: number;
+  quote_approved_at?: string;
   created_at: string;
   updated_at: string;
 };

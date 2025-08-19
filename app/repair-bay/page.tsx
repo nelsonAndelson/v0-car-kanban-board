@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,17 +32,25 @@ import {
   Play,
   Pause,
   Edit3,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import {
   supabase,
   type RepairJob,
   type JobType,
   type JobStatus,
+  type AdditionalCost,
+  type JobModification,
 } from "@/lib/supabase";
 import PaymentModal from "@/components/payment-modal";
 import JobEditModal from "@/components/job-edit-modal";
+import PnLBreakdownModal, {
+  type PnLRow,
+} from "@/components/pnl-breakdown-modal";
+import { formatCurrency, formatNumber } from "@/lib/utils";
 
 export default function RepairBayTracker() {
+  const router = useRouter();
   const [jobs, setJobs] = useState<RepairJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showNewJobForm, setShowNewJobForm] = useState(false);
@@ -51,6 +60,16 @@ export default function RepairBayTracker() {
   const [showJobEditModal, setShowJobEditModal] = useState(false);
   const [selectedJobForEdit, setSelectedJobForEdit] =
     useState<RepairJob | null>(null);
+  const [showPnlModal, setShowPnlModal] = useState<{
+    open: boolean;
+    type: "collected" | "potential";
+  }>({ open: false, type: "collected" });
+  const [timeEditState, setTimeEditState] = useState<{
+    open: boolean;
+    job: RepairJob | null;
+    start: string;
+    end: string;
+  }>({ open: false, job: null, start: "", end: "" });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -82,6 +101,7 @@ export default function RepairBayTracker() {
     "common"
   );
   const [customJobDescription, setCustomJobDescription] = useState("");
+  const [commonJobsQuery, setCommonJobsQuery] = useState("");
 
   // Common job descriptions for quick selection
   const commonJobs = [
@@ -193,41 +213,6 @@ export default function RepairBayTracker() {
     "Emergency Kit Installation",
     "Roadside Kit Installation",
     "Towing Package Installation",
-    "Trailer Hitch Installation",
-    "Trailer Brake Controller Installation",
-    "Trailer Wiring Installation",
-    "Trailer Light Installation",
-    "Trailer Tire Installation",
-    "Trailer Wheel Installation",
-    "Trailer Brake Installation",
-    "Trailer Axle Installation",
-    "Trailer Suspension Installation",
-    "Trailer Frame Repair",
-    "Trailer Body Repair",
-    "Trailer Paint Work",
-    "Trailer Interior Work",
-    "Trailer Electrical Work",
-    "Trailer Plumbing Work",
-    "Trailer HVAC Work",
-    "Trailer Appliance Installation",
-    "Trailer Furniture Installation",
-    "Trailer Storage Installation",
-    "Trailer Security Installation",
-    "Trailer Entertainment Installation",
-    "Trailer Communication Installation",
-    "Trailer Navigation Installation",
-    "Trailer Monitoring Installation",
-    "Trailer Control Installation",
-    "Trailer Automation Installation",
-    "Trailer Smart Home Installation",
-    "Trailer IoT Installation",
-    "Trailer AI Installation",
-    "Trailer Robotics Installation",
-    "Trailer Automation Installation",
-    "Trailer Smart Home Installation",
-    "Trailer IoT Installation",
-    "Trailer AI Installation",
-    "Trailer Robotics Installation",
   ];
 
   // Available technicians
@@ -317,10 +302,86 @@ export default function RepairBayTracker() {
   const [activeTimers, setActiveTimers] = useState<{ [key: string]: number }>(
     {}
   );
+  // Preserve elapsed time when a job is paused so resuming does not reset to 0
+  const [elapsedBeforePause, setElapsedBeforePause] = useState<{
+    [key: string]: number;
+  }>({});
+
+  // Cost aggregation maps for accurate P&L
+  const [additionalCostByJobId, setAdditionalCostByJobId] = useState<
+    Record<string, number>
+  >({});
+  const [modCostByJobId, setModCostByJobId] = useState<Record<string, number>>(
+    {}
+  );
 
   // Form submission state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  // Quote builder state (optional for new job)
+  type QuoteItem = {
+    id: string;
+    description: string;
+    estimated_cost: number;
+    customer_price: number;
+    quantity: number;
+  };
+  const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
+  const [newQuoteItem, setNewQuoteItem] = useState<{
+    description: string;
+    estimated_cost: number;
+    customer_price: number;
+    quantity: number;
+  }>({
+    description: "",
+    estimated_cost: 0,
+    customer_price: 0,
+    quantity: 1,
+  });
+  const [taxRatePct, setTaxRatePct] = useState<string>("8.00"); // display as percent
+  // Manual labor (non-taxable) input value (string for easy typing, parsed to number below)
+  const [manualLaborStr, setManualLaborStr] = useState<string>("");
+
+  // Persist tax rate preference
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("kars.taxRatePct");
+      if (saved) setTaxRatePct(saved);
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem("kars.taxRatePct", taxRatePct);
+    } catch {}
+  }, [taxRatePct]);
+
+  const parsedTaxRate =
+    Math.max(0, parseFloat(taxRatePct.replace(/,/g, ".")) || 0) / 100; // 0.08 for 8%
+  const manualLaborAmount = Math.max(
+    0,
+    parseFloat(manualLaborStr.replace(/,/g, ".")) || 0
+  );
+
+  const isLaborItem = (desc: string) => /labor/i.test((desc || "").trim());
+  const taxableSubtotal = quoteItems
+    .filter((it) => !isLaborItem(it.description))
+    .reduce(
+      (sum, it) => sum + (Number(it.customer_price) * (it.quantity || 1) || 0),
+      0
+    );
+  const laborSubtotal =
+    quoteItems
+      .filter((it) => isLaborItem(it.description))
+      .reduce(
+        (sum, it) =>
+          sum + (Number(it.customer_price) * (it.quantity || 1) || 0),
+        0
+      ) + manualLaborAmount;
+  const quoteTax = Number((taxableSubtotal * parsedTaxRate).toFixed(2));
+  const quoteTotal = Number(
+    (taxableSubtotal + laborSubtotal + quoteTax).toFixed(2)
+  );
 
   // Fetch repair jobs from Supabase
   const fetchRepairJobs = async () => {
@@ -340,7 +401,67 @@ export default function RepairBayTracker() {
           throw error;
         }
       } else {
-        setJobs(data || []);
+        const fetchedJobs = data || [];
+        setJobs(fetchedJobs);
+
+        // Initialize timers for jobs already in progress so timers don't start at 0
+        const now = Date.now();
+        const initialTimers: { [key: string]: number } = {};
+        fetchedJobs.forEach((job) => {
+          if (job.status === "in_progress") {
+            const started = new Date(job.time_started).getTime();
+            const secondsSinceStart = Math.max(
+              0,
+              Math.floor((now - started) / 1000)
+            );
+            const carried = Math.max(
+              0,
+              Math.floor((job.actual_hours || 0) * 3600)
+            );
+            initialTimers[job.id] = Math.max(secondsSinceStart, carried);
+          }
+        });
+        if (Object.keys(initialTimers).length > 0) {
+          setActiveTimers((prev) => ({ ...initialTimers, ...prev }));
+        }
+
+        // Fetch additional costs and job modifications to compute cost basis
+        try {
+          const [addCostsResp, modsResp] = await Promise.all([
+            supabase.from("additional_costs").select("repair_job_id, amount"),
+            supabase
+              .from("job_modifications")
+              .select("repair_job_id, estimated_cost"),
+          ]);
+
+          const addMap: Record<string, number> = {};
+          if (!addCostsResp.error) {
+            const addRows = (addCostsResp.data ?? []) as Array<
+              Pick<AdditionalCost, "repair_job_id" | "amount">
+            >;
+            addRows.forEach((row) => {
+              addMap[row.repair_job_id] =
+                (addMap[row.repair_job_id] || 0) + (Number(row.amount) || 0);
+            });
+          }
+
+          const modMap: Record<string, number> = {};
+          if (!modsResp.error) {
+            const modRows = (modsResp.data ?? []) as Array<
+              Pick<JobModification, "repair_job_id" | "estimated_cost">
+            >;
+            modRows.forEach((row) => {
+              modMap[row.repair_job_id] =
+                (modMap[row.repair_job_id] || 0) +
+                (Number(row.estimated_cost) || 0);
+            });
+          }
+
+          setAdditionalCostByJobId(addMap);
+          setModCostByJobId(modMap);
+        } catch (err) {
+          console.warn("Optional cost tables not found or fetch failed", err);
+        }
       }
     } catch (error) {
       console.error("Error fetching repair jobs:", error);
@@ -431,81 +552,142 @@ export default function RepairBayTracker() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
-      // Use custom job description if selected, or combine multiple selected jobs
-      let finalJobDescription = "";
-      if (selectedJobType === "other") {
-        finalJobDescription = customJobDescription;
-      } else if (selectedJobs.length > 0) {
-        finalJobDescription = selectedJobs.join(", ");
-      } else {
-        finalJobDescription = formData.job_description;
-      }
-
-      const jobData = {
-        ...formData,
-        status: "in_progress", // Start the job immediately
-        job_description: finalJobDescription,
-        time_started: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const { data, error } = await supabase
-        .from("repair_jobs")
-        .insert([jobData])
-        .select();
-
-      if (error) throw error;
-
-      // Start timer for the new job immediately
-      if (data && data[0]) {
-        setActiveTimers((prev) => ({ ...prev, [data[0].id]: 0 }));
-        // Immediately add the new job to local state to avoid refresh issue
-        setJobs((prevJobs) => [data[0], ...prevJobs]);
-      }
-
-      // Reset form
-      setFormData({
-        job_type: "customer",
-        status: "pending",
-        car_info: {
-          make: "",
-          model: "",
-          year: "",
-          stock_number: "",
-          license_plate: "",
-        },
-        customer_info: {
-          name: "",
-          contact: "",
-        },
-        job_description: "",
-        technician: "Alex Baguma",
-        estimated_hours: 0,
-        estimated_cost: 0,
-        customer_price: 0,
-        parts_ordered: false,
-        parts_notes: "",
-      });
-
-      // Show success message
-      setShowSuccessMessage(true);
-      setTimeout(() => setShowSuccessMessage(false), 3000);
-
-      // Reset multi-step form state
-      setCurrentStep(1);
-      setSelectedJobType("common");
-      setCustomJobDescription("");
-      setSelectedJobs([]);
-      setShowNewJobForm(false);
+      await createJobWithStatus("in_progress", false);
     } catch (error) {
       console.error("Error creating repair job:", error);
-      // TODO: Add proper error handling UI
       alert("Failed to create repair job. Please try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Create job helper – supports quote (pending) and direct start (in_progress)
+  const createJobWithStatus = async (
+    status: JobStatus,
+    presentAfterCreation: boolean
+  ) => {
+    // Derive description
+    let finalJobDescription = "";
+    if (selectedJobType === "other") {
+      finalJobDescription = customJobDescription;
+    } else if (selectedJobs.length > 0) {
+      finalJobDescription = selectedJobs.join(", ");
+    } else {
+      finalJobDescription = formData.job_description;
+    }
+
+    // Derive pricing
+    const hasItems = quoteItems.length > 0 || manualLaborAmount > 0;
+    const computedEstimatedCost = hasItems
+      ? quoteItems.reduce(
+          (sum, it) =>
+            sum + (Number(it.estimated_cost) * (it.quantity || 1) || 0),
+          0
+        )
+      : Number(formData.estimated_cost || 0);
+    const computedCustomerPrice = hasItems
+      ? quoteTotal
+      : Number(formData.customer_price || 0);
+
+    const baseJob = {
+      ...formData,
+      status: status === "in_progress" ? "in_progress" : "pending",
+      job_description: finalJobDescription,
+      time_started:
+        status === "in_progress"
+          ? new Date().toISOString()
+          : new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      estimated_cost: computedEstimatedCost,
+      customer_price: computedCustomerPrice,
+      tax_rate: parsedTaxRate,
+    } as Partial<RepairJob> & typeof formData & { tax_rate: number };
+
+    const { data, error } = await supabase
+      .from("repair_jobs")
+      .insert([baseJob])
+      .select();
+
+    if (error) throw error;
+    const created = data?.[0];
+    if (!created) throw new Error("Job was not created");
+
+    // If we built items, persist them
+    if (hasItems) {
+      const rows: Array<
+        Omit<JobModification, "id" | "created_at" | "updated_at">
+      > = quoteItems.map((it) => ({
+        repair_job_id: created.id,
+        description: it.description,
+        estimated_cost: Number(it.estimated_cost || 0),
+        customer_price: Number(it.customer_price || 0),
+        quantity: it.quantity || 1,
+      }));
+      if (manualLaborAmount > 0) {
+        rows.push({
+          repair_job_id: created.id,
+          description: "Labor",
+          estimated_cost: 0,
+          customer_price: manualLaborAmount,
+          quantity: 1,
+        });
+      }
+      const { error: modsErr } = await supabase
+        .from("job_modifications")
+        .insert(rows);
+      if (modsErr) throw modsErr;
+    }
+
+    // Local state updates
+    if (status === "in_progress") {
+      setActiveTimers((prev) => ({ ...prev, [created.id]: 0 }));
+    }
+    setJobs((prevJobs) => [created, ...prevJobs]);
+
+    // Reset form + quote builder state
+    setFormData({
+      job_type: "customer",
+      status: "pending",
+      car_info: {
+        make: "",
+        model: "",
+        year: "",
+        stock_number: "",
+        license_plate: "",
+      },
+      customer_info: {
+        name: "",
+        contact: "",
+      },
+      job_description: "",
+      technician: "Alex Baguma",
+      estimated_hours: 0,
+      estimated_cost: 0,
+      customer_price: 0,
+      parts_ordered: false,
+      parts_notes: "",
+    });
+    setQuoteItems([]);
+    setNewQuoteItem({
+      description: "",
+      estimated_cost: 0,
+      customer_price: 0,
+      quantity: 1,
+    });
+    setManualLaborStr("");
+
+    setShowSuccessMessage(true);
+    setTimeout(() => setShowSuccessMessage(false), 3000);
+    setCurrentStep(1);
+    setSelectedJobType("common");
+    setCustomJobDescription("");
+    setSelectedJobs([]);
+    setShowNewJobForm(false);
+
+    if (presentAfterCreation) {
+      router.push(`/repair-bay/quote/${created.id}`);
     }
   };
 
@@ -516,24 +698,44 @@ export default function RepairBayTracker() {
         updated_at: new Date().toISOString(),
       };
 
+      const job = jobs.find((j) => j.id === jobId);
+
       if (status === "in_progress") {
-        // Start timer when job goes in progress
-        setActiveTimers((prev) => ({ ...prev, [jobId]: 0 }));
+        // Resume timer using previously elapsed time if available
+        const resumeFrom =
+          elapsedBeforePause[jobId] ??
+          Math.max(0, Math.floor((job?.actual_hours || 0) * 3600));
+        setActiveTimers((prev) => ({ ...prev, [jobId]: resumeFrom }));
       } else if (status === "done") {
         // Stop timer and record actual completion time
         updateData.actual_completion = new Date().toISOString();
+        const elapsed = activeTimers[jobId] ?? elapsedBeforePause[jobId] ?? 0;
+        if (elapsed > 0) {
+          updateData.actual_hours = elapsed / 3600;
+        }
         setActiveTimers((prev) => {
           const newTimers = { ...prev };
           delete newTimers[jobId];
           return newTimers;
         });
       } else {
-        // Pause timer for other statuses
+        // Pause timer for other statuses. Preserve elapsed seconds so resume doesn't reset.
         setActiveTimers((prev) => {
           const newTimers = { ...prev };
+          const elapsed = newTimers[jobId] ?? 0;
+          setElapsedBeforePause((prevPaused) => ({
+            ...prevPaused,
+            [jobId]: elapsed,
+          }));
           delete newTimers[jobId];
           return newTimers;
         });
+        // Save accumulated time in hours for persistence
+        if (job) {
+          const accumulatedSeconds =
+            elapsedBeforePause[jobId] ?? activeTimers[jobId] ?? 0;
+          updateData.actual_hours = accumulatedSeconds / 3600;
+        }
       }
 
       const { error } = await supabase
@@ -621,6 +823,14 @@ export default function RepairBayTracker() {
     }
   };
 
+  // Helper to compute cost basis for a job
+  const getCostBasis = (job: RepairJob): number => {
+    const add = additionalCostByJobId[job.id] || 0;
+    const mods = modCostByJobId[job.id] || 0;
+    if (job.actual_cost && job.actual_cost > 0) return Number(job.actual_cost);
+    return Number(job.estimated_cost || 0) + add + mods;
+  };
+
   // Helper function to format time
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -633,7 +843,7 @@ export default function RepairBayTracker() {
 
   // Helper function to calculate profit/loss
   const calculateProfitLoss = (job: RepairJob) => {
-    const cost = job.estimated_cost || 0;
+    const cost = getCostBasis(job);
     const price = job.customer_price || 0;
     const profit = price - cost;
     return {
@@ -652,11 +862,52 @@ export default function RepairBayTracker() {
   const customerJobs = jobs.filter((job) => job.job_type === "customer").length;
   const dealerJobs = jobs.filter((job) => job.job_type === "dealer").length;
 
-  // Calculate total profit/loss
-  const totalProfitLoss = jobs.reduce((total, job) => {
-    const { profit } = calculateProfitLoss(job);
-    return total + profit;
+  // Calculate collected and potential P&L
+  const collectedPnL = jobs.reduce((total, job) => {
+    const price = Number(job.customer_price || 0);
+    const cost = getCostBasis(job);
+    const margin = Math.max(0, price - cost);
+    const marginPct = price > 0 ? margin / price : 0;
+    const collected = Number(job.total_paid || 0) * marginPct;
+    return total + collected;
   }, 0);
+
+  const potentialPnL = jobs.reduce((total, job) => {
+    const price = Number(job.customer_price || 0);
+    const cost = getCostBasis(job);
+    const margin = Math.max(0, price - cost);
+    const priceCollected = Number(job.total_paid || 0);
+    const marginPct = price > 0 ? margin / price : 0;
+    const collected = priceCollected * marginPct;
+    const remaining = Math.max(0, margin - collected);
+    return total + remaining;
+  }, 0);
+
+  const pnlRows: PnLRow[] = jobs.map((job) => {
+    const price = Number(job.customer_price || 0);
+    const cost = getCostBasis(job);
+    const margin = Math.max(0, price - cost);
+    const paid = Number(job.total_paid || 0);
+    const marginPct = price > 0 ? margin / price : 0;
+    const collectedProfit = paid * marginPct;
+    const potentialProfit = Math.max(0, margin - collectedProfit);
+    const title = `${job.car_info.year || ""} ${job.car_info.make || ""} ${
+      job.car_info.model || ""
+    }`.trim();
+    return {
+      id: job.id,
+      title,
+      customer: job.customer_info?.name,
+      status: job.status,
+      price,
+      cost,
+      margin,
+      paid,
+      collectedProfit,
+      potentialProfit,
+      outstanding: Number(job.outstanding_balance || Math.max(0, price - paid)),
+    };
+  });
 
   // Calculate top 5 key metrics for auto repair business
   const customerJobsOnly = jobs.filter((job) => job.job_type === "customer");
@@ -704,10 +955,14 @@ export default function RepairBayTracker() {
     today.getMonth(),
     today.getDate()
   );
-  const jobsToday = jobs.filter(
-    (job) => new Date(job.created_at) >= startOfDay
+  const jobsStartedToday = jobs.filter(
+    (job) => new Date(job.time_started) >= startOfDay
   ).length;
-  const bayUtilizationRate = jobsToday; // Assuming 1 bay, can be scaled by number of bays
+  const jobsCompletedToday = jobs.filter(
+    (job) =>
+      job.actual_completion && new Date(job.actual_completion) >= startOfDay
+  ).length;
+  // const bayUtilizationRate = jobsStartedToday; // Assuming 1 bay, can be scaled by number of bays
 
   // 5. Outstanding Receivables (Total unpaid amounts)
   const totalOutstandingReceivables = customerJobsOnly.reduce(
@@ -770,7 +1025,7 @@ export default function RepairBayTracker() {
               <Play className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
               <div>
                 <div className="text-lg sm:text-2xl font-bold">
-                  {activeJobs}
+                  {formatNumber(activeJobs)}
                 </div>
                 <div className="text-xs sm:text-sm text-muted-foreground">
                   Active
@@ -786,7 +1041,7 @@ export default function RepairBayTracker() {
               <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />
               <div>
                 <div className="text-lg sm:text-2xl font-bold">
-                  {pendingJobs}
+                  {formatNumber(pendingJobs)}
                 </div>
                 <div className="text-xs sm:text-sm text-muted-foreground">
                   Pending
@@ -802,7 +1057,7 @@ export default function RepairBayTracker() {
               <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
               <div>
                 <div className="text-lg sm:text-2xl font-bold">
-                  {completedJobs}
+                  {formatNumber(completedJobs)}
                 </div>
                 <div className="text-xs sm:text-sm text-muted-foreground">
                   Completed
@@ -818,7 +1073,7 @@ export default function RepairBayTracker() {
               <User className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
               <div>
                 <div className="text-lg sm:text-2xl font-bold">
-                  {customerJobs}
+                  {formatNumber(customerJobs)}
                 </div>
                 <div className="text-xs sm:text-sm text-muted-foreground">
                   Customer
@@ -834,7 +1089,7 @@ export default function RepairBayTracker() {
               <Car className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />
               <div>
                 <div className="text-lg sm:text-2xl font-bold">
-                  {dealerJobs}
+                  {formatNumber(dealerJobs)}
                 </div>
                 <div className="text-xs sm:text-sm text-muted-foreground">
                   Dealer
@@ -844,24 +1099,38 @@ export default function RepairBayTracker() {
           </CardContent>
         </Card>
 
-        <Card className="col-span-2 sm:col-span-1">
+        <Card
+          className="col-span-2 sm:col-span-1 cursor-pointer"
+          onClick={() => setShowPnlModal({ open: true, type: "collected" })}
+        >
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2">
-              <DollarSign
-                className={`w-4 h-4 sm:w-5 sm:h-5 ${
-                  totalProfitLoss >= 0 ? "text-green-500" : "text-red-500"
-                }`}
-              />
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
               <div>
-                <div
-                  className={`text-lg sm:text-2xl font-bold ${
-                    totalProfitLoss >= 0 ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {totalProfitLoss >= 0 ? "+" : ""}${totalProfitLoss.toFixed(2)}
+                <div className="text-lg sm:text-2xl font-bold text-green-600">
+                  {`+${formatCurrency(collectedPnL)}`}
                 </div>
                 <div className="text-xs sm:text-sm text-muted-foreground">
-                  Total P&L
+                  Collected P&L
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="col-span-2 sm:col-span-1 cursor-pointer"
+          onClick={() => setShowPnlModal({ open: true, type: "potential" })}
+        >
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
+              <div>
+                <div className="text-lg sm:text-2xl font-bold text-emerald-500">
+                  {`+${formatCurrency(potentialPnL)}`}
+                </div>
+                <div className="text-xs sm:text-sm text-muted-foreground">
+                  Potential P&L
                 </div>
               </div>
             </div>
@@ -919,10 +1188,10 @@ export default function RepairBayTracker() {
             <CardContent className="p-3 sm:p-4">
               <div className="text-center">
                 <div className="text-lg sm:text-2xl font-bold text-orange-600">
-                  {bayUtilizationRate}
+                  {formatNumber(jobsStartedToday)}
                 </div>
                 <div className="text-xs sm:text-sm text-muted-foreground">
-                  Jobs Today
+                  Started Today
                 </div>
               </div>
             </CardContent>
@@ -932,7 +1201,20 @@ export default function RepairBayTracker() {
             <CardContent className="p-3 sm:p-4">
               <div className="text-center">
                 <div className="text-lg sm:text-2xl font-bold text-red-600">
-                  ${totalOutstandingReceivables.toFixed(2)}
+                  {formatNumber(jobsCompletedToday)}
+                </div>
+                <div className="text-xs sm:text-sm text-muted-foreground">
+                  Completed Today
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-3 sm:p-4">
+              <div className="text-center">
+                <div className="text-lg sm:text-2xl font-bold text-red-600">
+                  {formatCurrency(totalOutstandingReceivables)}
                 </div>
                 <div className="text-xs sm:text-sm text-muted-foreground">
                   Outstanding
@@ -1286,33 +1568,46 @@ export default function RepairBayTracker() {
 
                     {selectedJobType === "common" ? (
                       <div className="mt-4">
+                        <Input
+                          placeholder="Search jobs/services"
+                          value={commonJobsQuery}
+                          onChange={(e) => setCommonJobsQuery(e.target.value)}
+                          className="mb-3"
+                        />
                         <div className="max-h-64 overflow-y-auto border rounded-md p-4">
                           <div className="grid grid-cols-1 gap-2">
-                            {commonJobs.map((job) => (
-                              <div
-                                key={job}
-                                className={`flex items-center p-3 rounded-md border cursor-pointer transition-colors ${
-                                  selectedJobs.includes(job)
-                                    ? "bg-primary text-primary-foreground border-primary"
-                                    : "bg-white hover:bg-gray-50 border-gray-200"
-                                }`}
-                                onClick={() => {
-                                  setSelectedJobs((prev) =>
-                                    prev.includes(job)
-                                      ? prev.filter((j) => j !== job)
-                                      : [...prev, job]
-                                  );
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={selectedJobs.includes(job)}
-                                  onChange={() => {}} // Handled by onClick
-                                  className="mr-3"
-                                />
-                                <span className="text-sm">{job}</span>
-                              </div>
-                            ))}
+                            {[...commonJobs]
+                              .sort((a, b) => a.localeCompare(b))
+                              .filter((j) =>
+                                j
+                                  .toLowerCase()
+                                  .includes(commonJobsQuery.toLowerCase())
+                              )
+                              .map((job) => (
+                                <div
+                                  key={job}
+                                  className={`flex items-center p-3 rounded-md border cursor-pointer transition-colors ${
+                                    selectedJobs.includes(job)
+                                      ? "bg-primary text-primary-foreground border-primary"
+                                      : "bg-white hover:bg-gray-50 border-gray-200"
+                                  }`}
+                                  onClick={() => {
+                                    setSelectedJobs((prev) =>
+                                      prev.includes(job)
+                                        ? prev.filter((j) => j !== job)
+                                        : [...prev, job]
+                                    );
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedJobs.includes(job)}
+                                    onChange={() => {}} // Handled by onClick
+                                    className="mr-3"
+                                  />
+                                  <span className="text-sm">{job}</span>
+                                </div>
+                              ))}
                           </div>
                         </div>
                         {selectedJobs.length > 0 && (
@@ -1421,44 +1716,210 @@ export default function RepairBayTracker() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Cost to Us (Parts + Labor)</Label>
+                    <div className="space-y-1">
+                      <Label>Derived Cost (sum of item costs)</Label>
+                      <div className="p-2 border rounded bg-gray-50 text-sm">
+                        $
+                        {quoteItems
+                          .reduce(
+                            (sum, it) => sum + (Number(it.estimated_cost) || 0),
+                            0
+                          )
+                          .toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label>
+                        Derived Price (taxable subtotal + labor + tax)
+                      </Label>
+                      <div className="p-2 border rounded bg-gray-50 text-sm">
+                        ${quoteTotal.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Optional Quote Items Builder */}
+                  <div className="space-y-3 border rounded-md p-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <Label className="text-sm font-semibold">
+                        Quote Items (optional)
+                      </Label>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-gray-500">
+                            Labor (non-taxable)
+                          </Label>
+                          <Input
+                            value={manualLaborStr}
+                            onChange={(e) => setManualLaborStr(e.target.value)}
+                            className="w-28 h-8 text-right"
+                            inputMode="decimal"
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-gray-500">Tax %</Label>
+                          <Input
+                            value={taxRatePct}
+                            onChange={(e) => setTaxRatePct(e.target.value)}
+                            className="w-24 h-8 text-right"
+                            inputMode="decimal"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-7 gap-2 items-end">
                       <Input
-                        type="number"
-                        value={formData.estimated_cost}
+                        placeholder="Description (e.g., Front brakes, Labor)"
+                        value={newQuoteItem.description}
                         onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            estimated_cost: parseFloat(e.target.value) || 0,
+                          setNewQuoteItem((p) => ({
+                            ...p,
+                            description: e.target.value,
                           }))
                         }
-                        placeholder="0"
-                        min="0"
-                        step="0.01"
+                        className="md:col-span-3"
                       />
-                      <p className="text-xs text-gray-500">
-                        Total cost of parts and labor
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Price for Customer</Label>
                       <Input
-                        type="number"
-                        value={formData.customer_price}
+                        type="text"
+                        placeholder="Cost to Us"
+                        value={newQuoteItem.estimated_cost}
                         onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            customer_price: parseFloat(e.target.value) || 0,
+                          setNewQuoteItem((p) => ({
+                            ...p,
+                            estimated_cost:
+                              parseFloat(e.target.value.replace(/,/g, ".")) ||
+                              0,
                           }))
                         }
-                        placeholder="0"
-                        min="0"
-                        step="0.01"
+                        inputMode="decimal"
                       />
-                      <p className="text-xs text-gray-500">
-                        Amount charged to customer
-                      </p>
+                      <Input
+                        type="text"
+                        placeholder="Price to Customer"
+                        value={newQuoteItem.customer_price}
+                        onChange={(e) =>
+                          setNewQuoteItem((p) => ({
+                            ...p,
+                            customer_price:
+                              parseFloat(e.target.value.replace(/,/g, ".")) ||
+                              0,
+                          }))
+                        }
+                        inputMode="decimal"
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Qty"
+                        value={newQuoteItem.quantity}
+                        onChange={(e) =>
+                          setNewQuoteItem((p) => ({
+                            ...p,
+                            quantity: Math.max(
+                              1,
+                              parseInt(e.target.value || "1")
+                            ),
+                          }))
+                        }
+                        min="1"
+                        step="1"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          if (!newQuoteItem.description) return;
+                          const item: QuoteItem = {
+                            id: Date.now().toString(),
+                            description: newQuoteItem.description,
+                            estimated_cost: newQuoteItem.estimated_cost,
+                            customer_price: newQuoteItem.customer_price,
+                            quantity: newQuoteItem.quantity || 1,
+                          };
+                          setQuoteItems((list) => [item, ...list]);
+                          setNewQuoteItem({
+                            description: "",
+                            estimated_cost: 0,
+                            customer_price: 0,
+                            quantity: 1,
+                          });
+                        }}
+                      >
+                        Add
+                      </Button>
                     </div>
+
+                    {(quoteItems.length > 0 || manualLaborAmount > 0) && (
+                      <div className="space-y-2">
+                        {quoteItems.map((it) => (
+                          <div
+                            key={it.id}
+                            className="flex items-center justify-between p-2 border rounded"
+                          >
+                            <div className="flex-1 min-w-0 pr-2">
+                              <div className="font-medium text-sm break-words">
+                                {it.description}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                Cost: ${it.estimated_cost.toFixed(2)}
+                              </div>
+                            </div>
+                            <div className="text-sm font-semibold mr-3">
+                              $
+                              {(
+                                (it.customer_price || 0) * (it.quantity || 1)
+                              ).toFixed(2)}
+                            </div>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                setQuoteItems((list) =>
+                                  list.filter((x) => x.id !== it.id)
+                                )
+                              }
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        ))}
+                        {manualLaborAmount > 0 && (
+                          <div className="border-b py-2">
+                            <div className="grid grid-cols-12 items-center text-sm">
+                              <div className="col-span-12 sm:col-span-8 pl-2 break-words">
+                                Labor
+                              </div>
+                              <div className="col-span-6 sm:col-span-2 text-left sm:text-right pl-2 sm:pl-0 mt-1 sm:mt-0">
+                                {formatCurrency(manualLaborAmount)}
+                              </div>
+                              <div className="col-span-6 sm:col-span-2 text-right pr-2 mt-1 sm:mt-0">
+                                {formatCurrency(manualLaborAmount)}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        <div className="p-3 bg-gray-50 rounded text-sm grid grid-cols-2 gap-2">
+                          <div>Subtotal (taxable)</div>
+                          <div className="text-right font-medium">
+                            ${taxableSubtotal.toFixed(2)}
+                          </div>
+                          <div>Labor (non-taxable)</div>
+                          <div className="text-right font-medium">
+                            ${laborSubtotal.toFixed(2)}
+                          </div>
+                          <div>Tax ({(parsedTaxRate * 100).toFixed(2)}%)</div>
+                          <div className="text-right font-medium">
+                            ${quoteTax.toFixed(2)}
+                          </div>
+                          <div className="font-semibold">Total</div>
+                          <div className="text-right font-semibold">
+                            ${quoteTotal.toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {formData.parts_ordered && (
@@ -1492,8 +1953,7 @@ export default function RepairBayTracker() {
                       disabled={
                         isSubmitting ||
                         !formData.technician ||
-                        formData.estimated_cost < 0 ||
-                        formData.customer_price < 0
+                        (quoteItems.length === 0 && manualLaborAmount === 0)
                       }
                     >
                       {isSubmitting ? (
@@ -1504,6 +1964,63 @@ export default function RepairBayTracker() {
                       ) : (
                         "Start Job"
                       )}
+                    </Button>
+                  </div>
+
+                  {/* Quote actions */}
+                  <div className="flex flex-col md:flex-row gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={async () => {
+                        setIsSubmitting(true);
+                        try {
+                          if (
+                            quoteItems.length === 0 &&
+                            manualLaborAmount === 0
+                          ) {
+                            alert(
+                              "Add at least one quote item before saving a quote."
+                            );
+                          } else {
+                            await createJobWithStatus("pending", false);
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          alert("Failed to save quote.");
+                        } finally {
+                          setIsSubmitting(false);
+                        }
+                      }}
+                      className="flex-1"
+                    >
+                      Save as Quote
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={async () => {
+                        setIsSubmitting(true);
+                        try {
+                          if (
+                            quoteItems.length === 0 &&
+                            manualLaborAmount === 0
+                          ) {
+                            alert(
+                              "Add at least one quote item before presenting."
+                            );
+                          } else {
+                            await createJobWithStatus("pending", true);
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          alert("Failed to present quote.");
+                        } finally {
+                          setIsSubmitting(false);
+                        }
+                      }}
+                      className="flex-1"
+                    >
+                      Present Quote (Customer View)
                     </Button>
                   </div>
                 </form>
@@ -1536,7 +2053,11 @@ export default function RepairBayTracker() {
         ) : (
           <div className="grid gap-4">
             {filteredJobs.map((job) => (
-              <Card key={job.id} className="hover:shadow-md transition-shadow">
+              <Card
+                key={job.id}
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => handleJobEditModalOpen(job)}
+              >
                 <CardContent className="p-4 sm:p-6">
                   {/* Header Section */}
                   <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
@@ -1585,9 +2106,27 @@ export default function RepairBayTracker() {
                       <p className="text-sm font-medium text-gray-700">
                         Time Started
                       </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {new Date(job.time_started).toLocaleString()}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(job.time_started).toLocaleString()}
+                        </p>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTimeEditState({
+                              open: true,
+                              job,
+                              start: job.time_started,
+                              end: job.actual_completion || "",
+                            });
+                          }}
+                        >
+                          <CalendarIcon className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-700">
@@ -1607,10 +2146,10 @@ export default function RepairBayTracker() {
                   {/* Financial Badges - Mobile Stacked */}
                   <div className="flex flex-wrap gap-2 mb-4">
                     <Badge variant="outline" className="text-sm">
-                      Cost: ${job.estimated_cost}
+                      Cost: {formatCurrency(getCostBasis(job))}
                     </Badge>
                     <Badge variant="outline" className="text-sm text-green-600">
-                      Price: ${job.customer_price || 0}
+                      Price: {formatCurrency(job.customer_price || 0)}
                     </Badge>
                     {(() => {
                       const { profit, isProfit, isLoss } =
@@ -1626,7 +2165,8 @@ export default function RepairBayTracker() {
                               : "text-gray-600 border-gray-600 bg-gray-50"
                           }`}
                         >
-                          {isProfit ? "+" : ""}${profit.toFixed(2)}{" "}
+                          {isProfit ? "+" : ""}
+                          {formatCurrency(profit)}{" "}
                           {isProfit ? "Profit" : isLoss ? "Loss" : "Break Even"}
                         </Badge>
                       );
@@ -1662,7 +2202,19 @@ export default function RepairBayTracker() {
                           : "Pending"}
                         {job.total_paid &&
                           job.total_paid > 0 &&
-                          ` ($${job.total_paid.toFixed(2)})`}
+                          ` (${formatCurrency(job.total_paid)})`}
+                      </Badge>
+                    )}
+                    {Number(job.outstanding_balance || 0) > 0 && (
+                      <Badge variant="outline" className="text-sm text-red-600">
+                        Owes{" "}
+                        {formatCurrency(
+                          job.outstanding_balance ||
+                            Math.max(
+                              0,
+                              (job.customer_price || 0) - (job.total_paid || 0)
+                            )
+                        )}
                       </Badge>
                     )}
                   </div>
@@ -1674,7 +2226,10 @@ export default function RepairBayTracker() {
                       {job.status === "pending" && (
                         <Button
                           size="sm"
-                          onClick={() => updateJobStatus(job.id, "in_progress")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateJobStatus(job.id, "in_progress");
+                          }}
                           className="flex-1 sm:flex-none"
                         >
                           Start
@@ -1685,14 +2240,20 @@ export default function RepairBayTracker() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => updateJobStatus(job.id, "paused")}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateJobStatus(job.id, "paused");
+                            }}
                             className="flex-1 sm:flex-none"
                           >
                             Pause
                           </Button>
                           <Button
                             size="sm"
-                            onClick={() => updateJobStatus(job.id, "done")}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateJobStatus(job.id, "done");
+                            }}
                             className="flex-1 sm:flex-none"
                           >
                             Complete
@@ -1702,7 +2263,10 @@ export default function RepairBayTracker() {
                       {job.status === "paused" && (
                         <Button
                           size="sm"
-                          onClick={() => updateJobStatus(job.id, "in_progress")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateJobStatus(job.id, "in_progress");
+                          }}
                           className="flex-1 sm:flex-none"
                         >
                           Resume
@@ -1712,7 +2276,10 @@ export default function RepairBayTracker() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => updateJobStatus(job.id, "in_progress")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateJobStatus(job.id, "in_progress");
+                          }}
                           className="flex-1 sm:flex-none text-orange-600 border-orange-600 hover:bg-orange-50"
                         >
                           Undo Complete
@@ -1726,19 +2293,40 @@ export default function RepairBayTracker() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleJobEditModalOpen(job)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleJobEditModalOpen(job);
+                        }}
                         className="flex-1 sm:flex-none text-gray-600 border-gray-600 hover:bg-gray-50"
                       >
                         <Edit3 className="w-4 h-4 mr-1" />
                         <span className="hidden sm:inline">Edit</span>
                       </Button>
 
+                      {job.job_type === "customer" &&
+                        job.status === "pending" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/repair-bay/quote/${job.id}`);
+                            }}
+                            className="flex-1 sm:flex-none text-purple-600 border-purple-600 hover:bg-purple-50"
+                          >
+                            Present Quote
+                          </Button>
+                        )}
+
                       {/* Payment Button for Customer Jobs */}
                       {job.job_type === "customer" && (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handlePaymentModalOpen(job)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePaymentModalOpen(job);
+                          }}
                           className="flex-1 sm:flex-none text-blue-600 border-blue-600 hover:bg-blue-50"
                         >
                           <DollarSign className="w-4 h-4 mr-1" />
@@ -1773,6 +2361,121 @@ export default function RepairBayTracker() {
           onJobUpdated={handleJobUpdated}
           onJobDeleted={handleJobDeleted}
         />
+      )}
+
+      {/* P&L Breakdown Modal */}
+      {showPnlModal.open && (
+        <PnLBreakdownModal
+          isOpen={showPnlModal.open}
+          onClose={() => setShowPnlModal({ open: false, type: "collected" })}
+          type={showPnlModal.type}
+          rows={pnlRows}
+          totalCollected={collectedPnL}
+          totalPotential={potentialPnL}
+        />
+      )}
+
+      {/* Edit Start/End Time Modal */}
+      {timeEditState.open && timeEditState.job && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() =>
+              setTimeEditState({ open: false, job: null, start: "", end: "" })
+            }
+          />
+          <Card className="relative w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Edit Job Times</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Start</Label>
+                <Input
+                  type="datetime-local"
+                  value={new Date(timeEditState.start)
+                    .toISOString()
+                    .slice(0, 16)}
+                  onChange={(e) =>
+                    setTimeEditState((s) => ({
+                      ...s,
+                      start: new Date(e.target.value).toISOString(),
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <Label>End (optional)</Label>
+                <Input
+                  type="datetime-local"
+                  value={
+                    timeEditState.end
+                      ? new Date(timeEditState.end).toISOString().slice(0, 16)
+                      : ""
+                  }
+                  onChange={(e) =>
+                    setTimeEditState((s) => ({
+                      ...s,
+                      end: e.target.value
+                        ? new Date(e.target.value).toISOString()
+                        : "",
+                    }))
+                  }
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1"
+                  onClick={async () => {
+                    const job = timeEditState.job!;
+                    try {
+                      const update: Partial<
+                        Omit<RepairJob, "actual_completion">
+                      > & {
+                        actual_completion: string | null;
+                      } = {
+                        time_started: timeEditState.start,
+                        actual_completion: timeEditState.end || null,
+                        updated_at: new Date().toISOString(),
+                      };
+                      const { error } = await supabase
+                        .from("repair_jobs")
+                        .update(update)
+                        .eq("id", job.id);
+                      if (error) throw error;
+                      setTimeEditState({
+                        open: false,
+                        job: null,
+                        start: "",
+                        end: "",
+                      });
+                      fetchRepairJobs();
+                    } catch (err) {
+                      console.error("Failed updating job times", err);
+                      alert("Failed to update times");
+                    }
+                  }}
+                >
+                  Save
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() =>
+                    setTimeEditState({
+                      open: false,
+                      job: null,
+                      start: "",
+                      end: "",
+                    })
+                  }
+                >
+                  Cancel
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
