@@ -2429,9 +2429,13 @@ export default function RepairBayTracker() {
                   onClick={async () => {
                     const job = timeEditState.job!;
                     try {
-                      const update: Partial<RepairJob> = {
+                      const update: Partial<
+                        Omit<RepairJob, "actual_completion">
+                      > & {
+                        actual_completion: string | null;
+                      } = {
                         time_started: timeEditState.start,
-                        actual_completion: timeEditState.end || (null as any),
+                        actual_completion: timeEditState.end || null,
                         updated_at: new Date().toISOString(),
                       };
                       const { error } = await supabase
