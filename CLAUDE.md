@@ -91,7 +91,9 @@ All database types are defined in `lib/db/types.ts`:
 
 ```
 app/
-  page.tsx                           # Kanban board (main inventory view)
+  page.tsx                           # Homepage with feature overview
+  inventory/
+    page.tsx                         # Kanban board for inventory tracking
   repair-bay/
     page.tsx                         # Repair bay tracker listing
     quote/[id]/page.tsx              # Customer job quote/invoice page
@@ -114,6 +116,7 @@ components/
       task-item.tsx                  # Individual task display
   layout/                            # Layout components
     navbar.tsx                       # Main navigation
+    footer.tsx                       # Footer with links and info
     quick-stats-bar.tsx              # Stats display bar
     setup-notice.tsx                 # Setup instructions banner
   ui/                                # shadcn/ui components

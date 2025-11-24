@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { Car, Wrench } from "lucide-react";
+import { Car, Home, Wrench } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -16,7 +16,13 @@ export function Navbar() {
   const navItems = [
     {
       href: "/",
-      label: "Car Turnover",
+      label: "Home",
+      icon: Home,
+      description: "Dashboard and overview",
+    },
+    {
+      href: "/inventory",
+      label: "Inventory",
       icon: Car,
       description: "Kanban board for inventory tracking",
     },
