@@ -1,14 +1,16 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { supabase } from "@/lib/supabase"
-import { Plus, Car, X } from "lucide-react"
+import type React from "react";
+import { useState } from "react";
+
+import { Plus, Car, X } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/lib/db";
 
 interface AddCarFormProps {
   onCarAdded: () => void
@@ -31,23 +33,23 @@ const popularMakes = [
   "Subaru",
   "Lexus",
   "Acura",
-]
+];
 
-const popularColors = ["White", "Black", "Silver", "Gray", "Blue", "Red", "Green", "Brown", "Gold", "Orange"]
+const popularColors = ["White", "Black", "Silver", "Gray", "Blue", "Red", "Green", "Brown", "Gold", "Orange"];
 
 export function AddCarForm({ onCarAdded, isFloating = false }: AddCarFormProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    year: new Date().getFullYear().toString(),
+    year: "",
     make: "",
     model: "",
     color: "",
-  })
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     try {
       const { error } = await supabase.from("cars").insert([
@@ -58,9 +60,9 @@ export function AddCarForm({ onCarAdded, isFloating = false }: AddCarFormProps) 
           color: formData.color,
           status: "Acquired",
         },
-      ])
+      ]);
 
-      if (error) throw error
+      if (error) {throw error;}
 
       // Reset form
       setFormData({
@@ -68,19 +70,19 @@ export function AddCarForm({ onCarAdded, isFloating = false }: AddCarFormProps) 
         make: "",
         model: "",
         color: "",
-      })
-      setIsOpen(false)
-      onCarAdded()
+      });
+      setIsOpen(false);
+      onCarAdded();
     } catch (error) {
-      console.error("Error adding car:", error)
+      console.error("Error adding car:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (!isOpen) {
     if (isFloating) {
-      return null // Don't render anything when floating and closed
+      return null; // Don't render anything when floating and closed
     }
 
     return (
@@ -88,7 +90,7 @@ export function AddCarForm({ onCarAdded, isFloating = false }: AddCarFormProps) 
         <Car className="w-5 h-5 mr-2" />
         Add New Car to Inventory
       </Button>
-    )
+    );
   }
 
   return (
@@ -118,6 +120,7 @@ export function AddCarForm({ onCarAdded, isFloating = false }: AddCarFormProps) 
                 value={formData.year}
                 onChange={(e) => setFormData({ ...formData, year: e.target.value })}
                 required
+                placeholder="Enter year"
                 min="1900"
                 max={new Date().getFullYear() + 1}
                 className="font-mono"
@@ -194,7 +197,7 @@ export function AddCarForm({ onCarAdded, isFloating = false }: AddCarFormProps) 
             <Button type="submit" disabled={isLoading} className="flex-1">
               {isLoading ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                   Adding Car...
                 </>
               ) : (
@@ -211,5 +214,5 @@ export function AddCarForm({ onCarAdded, isFloating = false }: AddCarFormProps) 
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -30,6 +30,9 @@ npm start
 
 # Lint code
 npm run lint
+
+# Auto-fix linting issues
+npm run lint:fix
 ```
 
 ## Database Setup
@@ -54,7 +57,9 @@ Environment variables required in `.env.local`:
 
 ### Core Data Models
 
-**Kanban System** (`lib/supabase.ts`):
+All database types are defined in `lib/db/types.ts`:
+
+**Kanban System**:
 - `Car` - Vehicle inventory (year, make, model, color, status)
 - `Task` - Checklist items attached to cars
 - `CarWithTasks` - Combined type for cars with their tasks
@@ -77,32 +82,78 @@ Environment variables required in `.env.local`:
 
 3. **Import Aliases**: `@/` maps to project root (configured in `tsconfig.json`)
 
-4. **Type Safety**: All Supabase types defined in `lib/supabase.ts`
-   - Export shared types from this file
+4. **Type Safety**:
+   - All Supabase types defined in `lib/db/types.ts`
+   - Database client in `lib/db/client.ts`
    - Use typed selects with Supabase queries (see `app/repair-bay/quote/[id]/page.tsx` for examples)
 
 ### File Structure
 
 ```
 app/
-  page.tsx                    # Kanban board (main inventory view)
+  page.tsx                           # Kanban board (main inventory view)
   repair-bay/
-    page.tsx                  # Repair bay tracker listing
-    quote/[id]/page.tsx       # Customer job quote/invoice page
+    page.tsx                         # Repair bay tracker listing
+    quote/[id]/page.tsx              # Customer job quote/invoice page
+
 components/
-  kanban-column.tsx           # Kanban column with drag-drop
-  car-card.tsx / sortable-car-card.tsx  # Individual car cards
-  car-details-modal.tsx       # Car details with task management
-  job-edit-modal.tsx          # Edit repair job details
-  payment-modal.tsx           # Record customer payments
-  pnl-breakdown-modal.tsx     # Profit/loss analysis
-  ui/                         # shadcn/ui components
+  features/                          # Feature-specific components
+    kanban/
+      kanban-column.tsx              # Kanban column with drag-drop
+      car-card.tsx                   # Individual car cards
+      sortable-car-card.tsx          # Sortable wrapper for drag-drop
+      add-car-form.tsx               # Form to add new cars
+      car-details-modal.tsx          # Car details with task management
+    repair-bay/
+      job-edit-modal.tsx             # Edit repair job details
+      payment-modal.tsx              # Record customer payments
+      pnl-breakdown-modal.tsx        # Profit/loss analysis
+      floating-add-button.tsx        # Floating action button
+    tasks/
+      add-task-form.tsx              # Form to add tasks to cars
+      task-item.tsx                  # Individual task display
+  layout/                            # Layout components
+    navbar.tsx                       # Main navigation
+    quick-stats-bar.tsx              # Stats display bar
+    setup-notice.tsx                 # Setup instructions banner
+  ui/                                # shadcn/ui components
+
 lib/
-  supabase.ts                 # Supabase client & type definitions
-  error-handler.ts            # Error handling utilities
-  taskUtils.ts                # Task management utilities
-  utils.ts                    # General utilities (cn, formatters)
-scripts/                      # SQL migration scripts (run in order)
+  db/
+    client.ts                        # Supabase client initialization
+    types.ts                         # All database type definitions
+    index.ts                         # Re-exports for convenience
+  utils/
+    cn.ts                            # Tailwind className utility
+    formatters.ts                    # Currency/number formatters
+    error-handler.ts                 # Error handling utilities
+    task-utils.ts                    # Task management utilities
+    index.ts                         # Re-exports for convenience
+
+scripts/                             # SQL migration scripts (run in order)
+```
+
+### Import Patterns
+
+The new structure supports clean imports:
+
+```typescript
+// Database
+import { supabase, type Car, type RepairJob } from "@/lib/db";
+
+// Utilities
+import { cn, formatCurrency, formatNumber } from "@/lib/utils";
+
+// Feature components
+import { KanbanColumn, AddCarForm, CarDetailsModal } from "@/components/features/kanban";
+import { JobEditModal, PaymentModal } from "@/components/features/repair-bay";
+import { AddTaskForm, TaskItem } from "@/components/features/tasks";
+
+// Layout components
+import { Navbar, QuickStatsBar, SetupNotice } from "@/components/layout";
+
+// UI components
+import { Button } from "@/components/ui/button";
 ```
 
 ### Database Schema Notes
@@ -130,6 +181,11 @@ scripts/                      # SQL migration scripts (run in order)
 ## Linting & Type Safety
 
 - Project uses TypeScript strict mode
-- ESLint configured with `eslint-config-next`
-- Avoid using `any` - use proper Supabase types instead
+- ESLint configured with comprehensive rules:
+  - No explicit `any` types (enforced as error)
+  - Unused variables must start with `_`
+  - Import ordering with automatic sorting
+  - Consistent quotes (double), semicolons required
+  - React best practices (self-closing components, etc.)
+- Run `npm run lint:fix` to automatically fix violations
 - When querying Supabase, use typed selects to infer return types

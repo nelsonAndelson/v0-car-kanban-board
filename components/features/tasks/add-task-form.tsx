@@ -1,17 +1,18 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
+import { useState } from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { supabase } from "@/lib/supabase"
-import { handleSupabaseError } from "@/lib/error-handler"
-import { Plus, X } from "lucide-react"
+import { Plus, X } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/lib/db";
+import { handleSupabaseError } from "@/lib/utils/error-handler";
 
 interface AddTaskFormProps {
   carId: string
@@ -19,17 +20,17 @@ interface AddTaskFormProps {
 }
 
 export function AddTaskForm({ carId, onTaskAdded }: AddTaskFormProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     priority: "medium" as "low" | "medium" | "high",
-  })
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     try {
       const { error } = await supabase.from("tasks").insert([
@@ -39,32 +40,32 @@ export function AddTaskForm({ carId, onTaskAdded }: AddTaskFormProps) {
           description: formData.description || null,
           priority: formData.priority,
         },
-      ])
+      ]);
 
       if (error) {
-        const appError = handleSupabaseError(error)
+        const appError = handleSupabaseError(error);
 
         if (appError.isTableMissing) {
-          alert("Tasks table not found. Please run the SQL script to create the database tables.")
-          return
+          alert("Tasks table not found. Please run the SQL script to create the database tables.");
+          return;
         }
 
-        alert(`Failed to add task: ${appError.message}`)
-        return
+        alert(`Failed to add task: ${appError.message}`);
+        return;
       }
 
       // Reset form
-      setFormData({ title: "", description: "", priority: "medium" })
-      setIsOpen(false)
-      onTaskAdded()
+      setFormData({ title: "", description: "", priority: "medium" });
+      setIsOpen(false);
+      onTaskAdded();
     } catch (error) {
-      console.error("Unexpected error adding task:", error)
-      const appError = handleSupabaseError(error)
-      alert(`Failed to add task: ${appError.message}`)
+      console.error("Unexpected error adding task:", error);
+      const appError = handleSupabaseError(error);
+      alert(`Failed to add task: ${appError.message}`);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const quickTasks = [
     "Needs oil change",
@@ -75,10 +76,10 @@ export function AddTaskForm({ carId, onTaskAdded }: AddTaskFormProps) {
     "Needs inspection",
     "Needs battery",
     "Needs transmission service",
-  ]
+  ];
 
   const addQuickTask = async (taskTitle: string) => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
       const { error } = await supabase.from("tasks").insert([
         {
@@ -86,29 +87,29 @@ export function AddTaskForm({ carId, onTaskAdded }: AddTaskFormProps) {
           title: taskTitle,
           priority: "medium",
         },
-      ])
+      ]);
 
       if (error) {
-        const appError = handleSupabaseError(error)
+        const appError = handleSupabaseError(error);
 
         if (appError.isTableMissing) {
-          alert("Tasks table not found. Please run the SQL script to create the database tables.")
-          return
+          alert("Tasks table not found. Please run the SQL script to create the database tables.");
+          return;
         }
 
-        alert(`Failed to add task: ${appError.message}`)
-        return
+        alert(`Failed to add task: ${appError.message}`);
+        return;
       }
 
-      onTaskAdded()
+      onTaskAdded();
     } catch (error) {
-      console.error("Unexpected error adding quick task:", error)
-      const appError = handleSupabaseError(error)
-      alert(`Failed to add task: ${appError.message}`)
+      console.error("Unexpected error adding quick task:", error);
+      const appError = handleSupabaseError(error);
+      alert(`Failed to add task: ${appError.message}`);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (!isOpen) {
     return (
@@ -134,7 +135,7 @@ export function AddTaskForm({ carId, onTaskAdded }: AddTaskFormProps) {
           ))}
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -206,5 +207,5 @@ export function AddTaskForm({ carId, onTaskAdded }: AddTaskFormProps) {
         </form>
       </CardContent>
     </Card>
-  )
+  );
 }

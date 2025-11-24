@@ -2,7 +2,9 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { CarWithTasks } from "@/lib/supabase";
+
+import type { CarWithTasks } from "@/lib/db";
+
 import { CarCard } from "./car-card";
 
 interface SortableCarCardProps {

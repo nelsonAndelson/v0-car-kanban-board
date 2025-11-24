@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
-import { supabase, Task } from "@/lib/supabase";
-import { priorityIcons, priorityColors } from "@/lib/taskUtils"; // Corrected import
-import { handleSupabaseError } from "@/lib/error-handler"; // Corrected import
+
 import { Trash2 } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { supabase, Task } from "@/lib/db";
+import { cn } from "@/lib/utils";
+import { handleSupabaseError } from "@/lib/utils/error-handler"; // Corrected import
+import { priorityIcons, priorityColors } from "@/lib/utils/task-utils"; // Corrected import
 
 interface TaskItemProps {
   task: Task;

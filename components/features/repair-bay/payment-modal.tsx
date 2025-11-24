@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+
+import { DollarSign, CheckCircle2 } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,9 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { DollarSign, CheckCircle2 } from "lucide-react";
-import { supabase, type RepairJob, type PaymentMethod } from "@/lib/supabase";
+import { supabase, type RepairJob, type PaymentMethod } from "@/lib/db";
 
 interface PaymentModalProps {
   job: RepairJob;
@@ -63,7 +65,7 @@ export default function PaymentModal({
         },
       ]);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       // Update the repair job with new payment totals
       const newTotalPaid = (job.total_paid || 0) + paymentData.amount;
@@ -89,7 +91,7 @@ export default function PaymentModal({
         })
         .eq("id", job.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {throw updateError;}
 
       // Reset form
       setPaymentData({
@@ -109,7 +111,7 @@ export default function PaymentModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {return null;}
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

@@ -1,8 +1,7 @@
 "use client";
 
-import type { CarWithTasks } from "@/lib/supabase";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+
 import {
   X,
   Car,
@@ -13,9 +12,9 @@ import {
   Clock,
   Trash2,
 } from "lucide-react";
-import { TaskItem } from "./task-item";
-import { AddTaskForm } from "./add-task-form";
-import { Badge } from "@/components/ui/badge";
+
+import { AddTaskForm } from "@/components/features/tasks/add-task-form";
+import { TaskItem } from "@/components/features/tasks/task-item";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,9 +26,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { supabase } from "@/lib/supabase";
-import { handleSupabaseError } from "@/lib/error-handler";
-import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { CarWithTasks } from "@/lib/db";
+import { supabase } from "@/lib/db";
+import { handleSupabaseError } from "@/lib/utils/error-handler";
 
 interface CarDetailsModalProps {
   car: CarWithTasks;

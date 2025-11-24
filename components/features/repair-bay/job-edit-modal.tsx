@@ -1,6 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
+
+import {
+  DollarSign,
+  Wrench,
+  Plus,
+  Trash2,
+  Edit3,
+  X,
+  AlertTriangle,
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,16 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  DollarSign,
-  Wrench,
-  Plus,
-  Trash2,
-  Edit3,
-  X,
-  AlertTriangle,
-} from "lucide-react";
-import { supabase, type RepairJob, type PaymentMethod } from "@/lib/supabase";
+import { supabase, type RepairJob, type PaymentMethod } from "@/lib/db";
 
 interface JobEditModalProps {
   job: RepairJob;
@@ -159,7 +161,7 @@ export default function JobEditModal({
           .from("additional_costs")
           .insert(costsToSave);
 
-        if (costsError) throw costsError;
+        if (costsError) {throw costsError;}
       }
 
       // Save job modifications to database
@@ -175,7 +177,7 @@ export default function JobEditModal({
           .from("job_modifications")
           .insert(modsToSave);
 
-        if (modsError) throw modsError;
+        if (modsError) {throw modsError;}
       }
 
       // Update the main job record
@@ -194,7 +196,7 @@ export default function JobEditModal({
         })
         .eq("id", job.id);
 
-      if (error) throw error;
+      if (error) {throw error;}
       onJobUpdated();
       onClose();
     } catch (error) {
@@ -206,7 +208,7 @@ export default function JobEditModal({
   };
 
   const handleAddPayment = async () => {
-    if (paymentData.amount <= 0) return;
+    if (paymentData.amount <= 0) {return;}
 
     setIsSubmitting(true);
     try {
@@ -221,7 +223,7 @@ export default function JobEditModal({
         },
       ]);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       // Update job payment totals
       const newTotalPaid = (job.total_paid || 0) + paymentData.amount;
@@ -247,7 +249,7 @@ export default function JobEditModal({
         })
         .eq("id", job.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {throw updateError;}
 
       setPaymentData({
         amount: 0,
@@ -265,7 +267,7 @@ export default function JobEditModal({
   };
 
   const handleAddCost = () => {
-    if (newCost.amount <= 0 || !newCost.description) return;
+    if (newCost.amount <= 0 || !newCost.description) {return;}
 
     const cost: AdditionalCost = {
       id: Date.now().toString(),
@@ -284,7 +286,7 @@ export default function JobEditModal({
   };
 
   const handleAddModification = () => {
-    if (!newModification.description) return;
+    if (!newModification.description) {return;}
 
     const modification: JobModification = {
       id: Date.now().toString(),
@@ -314,7 +316,7 @@ export default function JobEditModal({
         .delete()
         .eq("id", job.id);
 
-      if (error) throw error;
+      if (error) {throw error;}
       onJobDeleted();
       onClose();
     } catch (error) {
@@ -325,7 +327,7 @@ export default function JobEditModal({
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {return null;}
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

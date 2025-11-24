@@ -1,15 +1,16 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
+import { useState } from "react";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { supabase } from "@/lib/supabase"
-import { Plus, Car, X } from "lucide-react"
+import { Plus, Car, X } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/lib/db";
 
 interface FloatingAddButtonProps {
   onCarAdded: () => void
@@ -31,23 +32,23 @@ const popularMakes = [
   "Subaru",
   "Lexus",
   "Acura",
-]
+];
 
-const popularColors = ["White", "Black", "Silver", "Gray", "Blue", "Red", "Green", "Brown", "Gold", "Orange"]
+const popularColors = ["White", "Black", "Silver", "Gray", "Blue", "Red", "Green", "Brown", "Gold", "Orange"];
 
 export function FloatingAddButton({ onCarAdded }: FloatingAddButtonProps) {
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     year: new Date().getFullYear().toString(),
     make: "",
     model: "",
     color: "",
-  })
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
+    e.preventDefault();
+    setIsLoading(true);
 
     try {
       const { error } = await supabase.from("cars").insert([
@@ -58,9 +59,9 @@ export function FloatingAddButton({ onCarAdded }: FloatingAddButtonProps) {
           color: formData.color,
           status: "Acquired",
         },
-      ])
+      ]);
 
-      if (error) throw error
+      if (error) {throw error;}
 
       // Reset form
       setFormData({
@@ -68,16 +69,16 @@ export function FloatingAddButton({ onCarAdded }: FloatingAddButtonProps) {
         make: "",
         model: "",
         color: "",
-      })
-      setIsFormOpen(false)
-      onCarAdded()
+      });
+      setIsFormOpen(false);
+      onCarAdded();
     } catch (error) {
-      console.error("Error adding car:", error)
-      alert("Failed to add car. Please try again.")
+      console.error("Error adding car:", error);
+      alert("Failed to add car. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <>
@@ -209,7 +210,7 @@ export function FloatingAddButton({ onCarAdded }: FloatingAddButtonProps) {
                   <Button type="submit" disabled={isLoading} className="flex-1 bg-black text-white">
                     {isLoading ? (
                       <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                         Adding Car...
                       </>
                     ) : (
@@ -229,5 +230,5 @@ export function FloatingAddButton({ onCarAdded }: FloatingAddButtonProps) {
         </div>
       )}
     </>
-  )
+  );
 }
