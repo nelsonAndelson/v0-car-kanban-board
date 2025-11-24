@@ -326,11 +326,11 @@ export default function KanbanBoard() {
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            <div className="flex overflow-x-auto pb-6 gap-6">
+            <div className="flex pb-6 gap-4">
               {COLUMNS.map((column) => (
                 <div
                   key={column.id}
-                  className={`flex-shrink-0 w-[340px] rounded-xl shadow-sm ${column.color} overflow-hidden`}
+                  className={`flex-1 min-w-0 rounded-xl shadow-sm ${column.color} overflow-hidden`}
                 >
                   {/* Column Header */}
                   <div className="px-4 py-3 bg-card/60 backdrop-blur-sm border-b">

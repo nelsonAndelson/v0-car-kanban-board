@@ -41,7 +41,7 @@ export function AddCarForm({ onCarAdded, isFloating = false }: AddCarFormProps) 
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    year: new Date().getFullYear().toString(),
+    year: "",
     make: "",
     model: "",
     color: "",
@@ -120,6 +120,7 @@ export function AddCarForm({ onCarAdded, isFloating = false }: AddCarFormProps) 
                 value={formData.year}
                 onChange={(e) => setFormData({ ...formData, year: e.target.value })}
                 required
+                placeholder="Enter year"
                 min="1900"
                 max={new Date().getFullYear() + 1}
                 className="font-mono"
