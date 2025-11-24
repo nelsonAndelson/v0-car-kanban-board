@@ -1,8 +1,9 @@
 "use client";
 
+import { X, DollarSign } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { X, DollarSign } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 export type PnLRow = {
@@ -36,7 +37,7 @@ export default function PnLBreakdownModal({
   totalCollected,
   totalPotential,
 }: PnLBreakdownModalProps) {
-  if (!isOpen) return null;
+  if (!isOpen) {return null;}
 
   const sorted = [...rows].sort((a, b) => {
     const aVal = type === "collected" ? a.collectedProfit : a.potentialProfit;
@@ -123,4 +124,3 @@ export default function PnLBreakdownModal({
     </div>
   );
 }
-

@@ -19,22 +19,23 @@ export function handleSupabaseError(error: unknown): AppError {
   // Cast error for type safety
   const errorObj = error as SupabaseErrorLike;
 
-  // Enhanced logging with more details
-  console.group("🔍 Supabase Error Analysis");
-  console.log("Raw error object:", error);
-  console.log("Error type:", typeof error);
-  console.log("Error constructor:", error?.constructor?.name);
-  console.log("Error message:", errorObj?.message);
-  console.log("Error code:", errorObj?.code);
-  console.log("Error details:", errorObj?.details);
-  console.log("Error hint:", errorObj?.hint);
-  console.log(
-    "Full error keys:",
-    error && typeof error === "object"
-      ? Object.keys(error)
-      : "No keys - error is falsy"
-  );
-  console.groupEnd();
+  // Enhanced logging with more details (only in development)
+  if (process.env.NODE_ENV === "development") {
+    console.error("🔍 Supabase Error Analysis");
+    console.error("Raw error object:", error);
+    console.error("Error type:", typeof error);
+    console.error("Error constructor:", error?.constructor?.name);
+    console.error("Error message:", errorObj?.message);
+    console.error("Error code:", errorObj?.code);
+    console.error("Error details:", errorObj?.details);
+    console.error("Error hint:", errorObj?.hint);
+    console.error(
+      "Full error keys:",
+      error && typeof error === "object"
+        ? Object.keys(error)
+        : "No keys - error is falsy"
+    );
+  }
 
   // Handle null/undefined errors
   if (!error) {

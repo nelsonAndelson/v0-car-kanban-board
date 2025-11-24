@@ -1,9 +1,11 @@
-import type { CarWithTasks } from "@/lib/supabase";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+
+import type { CarWithTasks } from "@/lib/db";
+
 import { SortableCarCard } from "./sortable-car-card";
 
 interface KanbanColumnProps {

@@ -1,11 +1,12 @@
 "use client";
 
-import type { CarWithTasks } from "@/lib/supabase";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { TaskItem } from "./task-item";
-import { AddTaskForm } from "./add-task-form";
 import { CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+
+import { AddTaskForm } from "@/components/features/tasks/add-task-form";
+import { TaskItem } from "@/components/features/tasks/task-item";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import type { CarWithTasks } from "@/lib/db";
 
 interface CarCardProps {
   car: CarWithTasks;

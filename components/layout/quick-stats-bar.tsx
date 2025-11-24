@@ -1,21 +1,22 @@
-"use client"
+"use client";
 
-import { Badge } from "@/components/ui/badge"
-import { Car, Clock, AlertTriangle, TrendingUp } from "lucide-react"
-import type { CarWithTasks } from "@/lib/supabase"
+import { Car, Clock, AlertTriangle, TrendingUp } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import type { CarWithTasks } from "@/lib/db";
 
 interface QuickStatsBarProps {
   cars: CarWithTasks[]
 }
 
 export function QuickStatsBar({ cars }: QuickStatsBarProps) {
-  const totalTasks = cars.reduce((sum, car) => sum + car.tasks.length, 0)
-  const completedTasks = cars.reduce((sum, car) => sum + car.tasks.filter((t) => t.is_completed).length, 0)
+  const totalTasks = cars.reduce((sum, car) => sum + car.tasks.length, 0);
+  const completedTasks = cars.reduce((sum, car) => sum + car.tasks.filter((t) => t.is_completed).length, 0);
   const highPriorityTasks = cars.reduce(
     (sum, car) => sum + car.tasks.filter((t) => !t.is_completed && t.priority === "high").length,
     0,
-  )
-  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+  );
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
     <div className="fixed top-4 left-4 right-4 z-20 bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg">
@@ -47,5 +48,5 @@ export function QuickStatsBar({ cars }: QuickStatsBarProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

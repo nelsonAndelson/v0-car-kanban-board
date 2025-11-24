@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+
 import {
   DndContext,
   DragEndEvent,
@@ -10,16 +11,13 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
+import { Car, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 
-import { supabase, Task, type CarWithTasks } from "@/lib/supabase";
-import { KanbanColumn } from "@/components/kanban-column";
-import { AddCarForm } from "@/components/add-car-form";
+import { KanbanColumn, AddCarForm, CarDetailsModal } from "@/components/features/kanban";
+import { FloatingAddButton } from "@/components/features/repair-bay";
+import { QuickStatsBar, SetupNotice } from "@/components/layout";
 import { Badge } from "@/components/ui/badge";
-import { Car, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
-import { FloatingAddButton } from "@/components/floating-add-button";
-import { QuickStatsBar } from "@/components/quick-stats-bar";
-import { SetupNotice } from "@/components/setup-notice";
-import { CarDetailsModal } from "@/components/car-details-modal";
+import { supabase, Task, type CarWithTasks } from "@/lib/db";
 
 const COLUMNS = [
   { id: "Acquired", title: "Acquired", color: "bg-blue-100 border-blue-200" },
@@ -61,7 +59,7 @@ export default function KanbanBoard() {
         .select("*")
         .order("updated_at", { ascending: false });
 
-      if (carsError) throw carsError;
+      if (carsError) {throw carsError;}
 
       // Try to fetch tasks, but handle gracefully if table doesn't exist
       let tasksData: Task[] = [];
@@ -166,17 +164,17 @@ export default function KanbanBoard() {
     const { active, over } = event;
     setActiveId(null);
 
-    if (!over) return;
-    if (active.id === over.id) return;
+    if (!over) {return;}
+    if (active.id === over.id) {return;}
 
     // Find the car being moved
     const car = cars.find((c) => c.id === active.id);
-    if (!car) return;
+    if (!car) {return;}
 
     const newStatus = over.id as CarWithTasks["status"];
 
     // If moving to the same column, we don't need to update status
-    if (car.status === newStatus) return;
+    if (car.status === newStatus) {return;}
 
     try {
       const { error } = await supabase
@@ -187,7 +185,7 @@ export default function KanbanBoard() {
         })
         .eq("id", active.id);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       // Optimistically update local state
       setCars((prevCars) =>
@@ -246,7 +244,7 @@ export default function KanbanBoard() {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           <span className="ml-2">Loading inventory...</span>
         </div>
       </div>

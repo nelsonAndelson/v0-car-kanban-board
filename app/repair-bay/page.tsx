@@ -1,7 +1,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
+
+import {
+  AlertTriangle,
+  Calendar as CalendarIcon,
+  Car,
+  CheckCircle2,
+  Clock,
+  DollarSign,
+  Edit3,
+  Pause,
+  Play,
+  User,
+  Wrench,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
+
+import JobEditModal from "@/components/features/repair-bay/job-edit-modal";
+import PaymentModal from "@/components/features/repair-bay/payment-modal";
+import PnLBreakdownModal, {
+  type PnLRow,
+} from "@/components/features/repair-bay/pnl-breakdown-modal";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,7 +31,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,31 +42,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Wrench,
-  Clock,
-  DollarSign,
-  User,
-  Car,
-  AlertTriangle,
-  CheckCircle2,
-  Play,
-  Pause,
-  Edit3,
-  Calendar as CalendarIcon,
-} from "lucide-react";
-import {
   supabase,
   type RepairJob,
   type JobType,
   type JobStatus,
   type AdditionalCost,
   type JobModification,
-} from "@/lib/supabase";
-import PaymentModal from "@/components/payment-modal";
-import JobEditModal from "@/components/job-edit-modal";
-import PnLBreakdownModal, {
-  type PnLRow,
-} from "@/components/pnl-breakdown-modal";
+} from "@/lib/db";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 
 export default function RepairBayTracker() {
@@ -347,7 +349,7 @@ export default function RepairBayTracker() {
   useEffect(() => {
     try {
       const saved = localStorage.getItem("kars.taxRatePct");
-      if (saved) setTaxRatePct(saved);
+      if (saved) {setTaxRatePct(saved);}
     } catch {}
   }, []);
   useEffect(() => {
@@ -610,9 +612,9 @@ export default function RepairBayTracker() {
       .insert([baseJob])
       .select();
 
-    if (error) throw error;
+    if (error) {throw error;}
     const created = data?.[0];
-    if (!created) throw new Error("Job was not created");
+    if (!created) {throw new Error("Job was not created");}
 
     // If we built items, persist them
     if (hasItems) {
@@ -637,7 +639,7 @@ export default function RepairBayTracker() {
       const { error: modsErr } = await supabase
         .from("job_modifications")
         .insert(rows);
-      if (modsErr) throw modsErr;
+      if (modsErr) {throw modsErr;}
     }
 
     // Local state updates
@@ -743,7 +745,7 @@ export default function RepairBayTracker() {
         .update(updateData)
         .eq("id", jobId);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       // Update local state immediately to avoid refresh issues
       setJobs((prevJobs) =>
@@ -827,7 +829,7 @@ export default function RepairBayTracker() {
   const getCostBasis = (job: RepairJob): number => {
     const add = additionalCostByJobId[job.id] || 0;
     const mods = modCostByJobId[job.id] || 0;
-    if (job.actual_cost && job.actual_cost > 0) return Number(job.actual_cost);
+    if (job.actual_cost && job.actual_cost > 0) {return Number(job.actual_cost);}
     return Number(job.estimated_cost || 0) + add + mods;
   };
 
@@ -974,7 +976,7 @@ export default function RepairBayTracker() {
     return (
       <div className="container mx-auto p-6">
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           <span className="ml-2">Loading repair bay...</span>
         </div>
       </div>
@@ -1828,7 +1830,7 @@ export default function RepairBayTracker() {
                       <Button
                         type="button"
                         onClick={() => {
-                          if (!newQuoteItem.description) return;
+                          if (!newQuoteItem.description) {return;}
                           const item: QuoteItem = {
                             id: Date.now().toString(),
                             description: newQuoteItem.description,
@@ -1958,7 +1960,7 @@ export default function RepairBayTracker() {
                     >
                       {isSubmitting ? (
                         <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
                           Starting...
                         </>
                       ) : (
@@ -2427,7 +2429,10 @@ export default function RepairBayTracker() {
                 <Button
                   className="flex-1"
                   onClick={async () => {
-                    const job = timeEditState.job!;
+                    const job = timeEditState.job;
+                    if (!job) {
+                      return;
+                    }
                     try {
                       const update: Partial<
                         Omit<RepairJob, "actual_completion">
@@ -2442,7 +2447,7 @@ export default function RepairBayTracker() {
                         .from("repair_jobs")
                         .update(update)
                         .eq("id", job.id);
-                      if (error) throw error;
+                      if (error) {throw error;}
                       setTimeEditState({
                         open: false,
                         job: null,

@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
+
+import logo from "@/app/logo.png";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase, type RepairJob } from "@/lib/supabase";
+import { supabase, type RepairJob } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils";
-import Image from "next/image";
-import logo from "@/app/logo.png";
 
 type ModRow = {
   id: string;
@@ -38,8 +40,8 @@ export default function CustomerQuotePage() {
           .select("id, description, estimated_cost, customer_price, quantity")
           .eq("repair_job_id", jobId),
       ]);
-      if (jobErr) throw jobErr;
-      if (modsErr) throw modsErr;
+      if (jobErr) {throw jobErr;}
+      if (modsErr) {throw modsErr;}
       setJob((jobData as RepairJob) ?? null);
       setMods((modsData as ModRow[]) || []);
     } catch (err) {
@@ -50,7 +52,7 @@ export default function CustomerQuotePage() {
   };
 
   useEffect(() => {
-    if (jobId) fetchData();
+    if (jobId) {fetchData();}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
 
@@ -66,7 +68,7 @@ export default function CustomerQuotePage() {
   const total = Number((taxableSubtotal + laborSubtotal + tax).toFixed(2));
 
   const handleApprove = async () => {
-    if (!job) return;
+    if (!job) {return;}
     setSubmitting(true);
     try {
       const { error } = await supabase
@@ -79,7 +81,7 @@ export default function CustomerQuotePage() {
           updated_at: new Date().toISOString(),
         })
         .eq("id", job.id);
-      if (error) throw error;
+      if (error) {throw error;}
       router.push("/repair-bay");
     } catch (err) {
       console.error("Approve failed", err);
