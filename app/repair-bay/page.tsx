@@ -50,6 +50,7 @@ import {
   type JobModification,
 } from "@/lib/db";
 import { formatCurrency, formatNumber } from "@/lib/utils";
+import { handleSupabaseError } from "@/lib/utils/error-handler";
 
 export default function RepairBayTracker() {
   const router = useRouter();
@@ -388,85 +389,142 @@ export default function RepairBayTracker() {
   // Fetch repair jobs from Supabase
   const fetchRepairJobs = async () => {
     try {
+      // First, verify Supabase connection
+      const { data: healthCheck, error: healthError } = await supabase
+        .from("repair_jobs")
+        .select("id")
+        .limit(1);
+
+      // Check if error is due to missing table
+      if (healthError) {
+        const appError = handleSupabaseError(healthError);
+        
+        if (appError.isTableMissing) {
+          console.error(
+            "❌ Repair jobs table not found. Please run the SQL script to create it.",
+            "\nExpected table: repair_jobs",
+            "\nError details:",
+            appError
+          );
+          setJobs([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Log detailed error information
+        console.error("❌ Error fetching repair jobs:", {
+          message: appError.message,
+          code: appError.code,
+          details: appError.details,
+          fullError: healthError,
+        });
+        
+        // Try to extract more info from the error
+        const errorStr = JSON.stringify(healthError, Object.getOwnPropertyNames(healthError));
+        console.error("Full error (stringified):", errorStr);
+        
+        setJobs([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // If health check passed, fetch all jobs
       const { data, error } = await supabase
         .from("repair_jobs")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (error) {
-        if (error.message.includes("does not exist")) {
-          console.warn(
-            "Repair jobs table not found. Please run the SQL script to create it."
-          );
-          setJobs([]);
-        } else {
-          throw error;
-        }
-      } else {
-        const fetchedJobs = data || [];
-        setJobs(fetchedJobs);
-
-        // Initialize timers for jobs already in progress so timers don't start at 0
-        const now = Date.now();
-        const initialTimers: { [key: string]: number } = {};
-        fetchedJobs.forEach((job) => {
-          if (job.status === "in_progress") {
-            const started = new Date(job.time_started).getTime();
-            const secondsSinceStart = Math.max(
-              0,
-              Math.floor((now - started) / 1000)
-            );
-            const carried = Math.max(
-              0,
-              Math.floor((job.actual_hours || 0) * 3600)
-            );
-            initialTimers[job.id] = Math.max(secondsSinceStart, carried);
-          }
+        const appError = handleSupabaseError(error);
+        console.error("❌ Error fetching repair jobs:", {
+          message: appError.message,
+          code: appError.code,
+          details: appError.details,
         });
-        if (Object.keys(initialTimers).length > 0) {
-          setActiveTimers((prev) => ({ ...initialTimers, ...prev }));
+        setJobs([]);
+        return;
+      }
+
+      const fetchedJobs = (data || []) as RepairJob[];
+      setJobs(fetchedJobs);
+
+      // Initialize timers for jobs already in progress so timers don't start at 0
+      const now = Date.now();
+      const initialTimers: { [key: string]: number } = {};
+      fetchedJobs.forEach((job) => {
+        if (job.status === "in_progress") {
+          const started = new Date(job.time_started).getTime();
+          const secondsSinceStart = Math.max(
+            0,
+            Math.floor((now - started) / 1000)
+          );
+          const carried = Math.max(
+            0,
+            Math.floor((job.actual_hours || 0) * 3600)
+          );
+          initialTimers[job.id] = Math.max(secondsSinceStart, carried);
+        }
+      });
+      if (Object.keys(initialTimers).length > 0) {
+        setActiveTimers((prev) => ({ ...initialTimers, ...prev }));
+      }
+
+      // Fetch additional costs and job modifications to compute cost basis
+      try {
+        const [addCostsResp, modsResp] = await Promise.all([
+          supabase.from("additional_costs").select("repair_job_id, amount"),
+          supabase
+            .from("job_modifications")
+            .select("repair_job_id, estimated_cost"),
+        ]);
+
+        const addMap: Record<string, number> = {};
+        if (!addCostsResp.error) {
+          const addRows = (addCostsResp.data ?? []) as Array<
+            Pick<AdditionalCost, "repair_job_id" | "amount">
+          >;
+          addRows.forEach((row) => {
+            addMap[row.repair_job_id] =
+              (addMap[row.repair_job_id] || 0) + (Number(row.amount) || 0);
+          });
         }
 
-        // Fetch additional costs and job modifications to compute cost basis
-        try {
-          const [addCostsResp, modsResp] = await Promise.all([
-            supabase.from("additional_costs").select("repair_job_id, amount"),
-            supabase
-              .from("job_modifications")
-              .select("repair_job_id, estimated_cost"),
-          ]);
-
-          const addMap: Record<string, number> = {};
-          if (!addCostsResp.error) {
-            const addRows = (addCostsResp.data ?? []) as Array<
-              Pick<AdditionalCost, "repair_job_id" | "amount">
-            >;
-            addRows.forEach((row) => {
-              addMap[row.repair_job_id] =
-                (addMap[row.repair_job_id] || 0) + (Number(row.amount) || 0);
-            });
-          }
-
-          const modMap: Record<string, number> = {};
-          if (!modsResp.error) {
-            const modRows = (modsResp.data ?? []) as Array<
-              Pick<JobModification, "repair_job_id" | "estimated_cost">
-            >;
-            modRows.forEach((row) => {
-              modMap[row.repair_job_id] =
-                (modMap[row.repair_job_id] || 0) +
-                (Number(row.estimated_cost) || 0);
-            });
-          }
-
-          setAdditionalCostByJobId(addMap);
-          setModCostByJobId(modMap);
-        } catch (err) {
-          console.warn("Optional cost tables not found or fetch failed", err);
+        const modMap: Record<string, number> = {};
+        if (!modsResp.error) {
+          const modRows = (modsResp.data ?? []) as Array<
+            Pick<JobModification, "repair_job_id" | "estimated_cost">
+          >;
+          modRows.forEach((row) => {
+            modMap[row.repair_job_id] =
+              (modMap[row.repair_job_id] || 0) +
+              (Number(row.estimated_cost) || 0);
+          });
         }
+
+        setAdditionalCostByJobId(addMap);
+        setModCostByJobId(modMap);
+      } catch (err) {
+        console.warn("Optional cost tables not found or fetch failed", err);
       }
     } catch (error) {
-      console.error("Error fetching repair jobs:", error);
+      // Catch any unexpected errors (network, etc.)
+      const appError = handleSupabaseError(error);
+      console.error("❌ Unexpected error fetching repair jobs:", {
+        message: appError.message,
+        code: appError.code,
+        details: appError.details,
+        errorType: typeof error,
+        errorConstructor: error?.constructor?.name,
+      });
+      
+      // Try to stringify for better visibility
+      try {
+        const errorStr = JSON.stringify(error, Object.getOwnPropertyNames(error));
+        console.error("Error (stringified):", errorStr);
+      } catch (stringifyErr) {
+        console.error("Could not stringify error (likely circular reference)");
+      }
+      
       setJobs([]);
     } finally {
       setIsLoading(false);
